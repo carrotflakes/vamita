@@ -4,17 +4,18 @@ use std::f32::consts::TAU;
 use bevy::prelude::*;
 use rand::Rng;
 
-use super::events::{EnemyKilled, PlayerHit};
-use super::resources::{
-    EnemyCatalog, EnemySpawnTimer, HitSound, PauseState, PlayerStats, Score, ShootSound, ShootTimer,
-};
-use crate::MainState;
 use super::components::{Enemy, EnemyAttributes, Lifetime, Particle, Player, Projectile, Velocity};
 use super::constants::{
     ARENA_HALF_SIZE, ENEMY_DEATH_PARTICLE_LIFETIME, ENEMY_DEATH_PARTICLE_SIZE,
     ENEMY_DEATH_PARTICLE_SPEED, ENEMY_DEATH_PARTICLES, PLAYER_SIZE, PROJECTILE_SIZE,
     PROJECTILE_SPEED,
 };
+use super::events::{EnemyKilled, PlayerHit};
+use super::resources::{
+    EnemyCatalog, EnemySpawnTimer, HitSelfSound, HitSound, PauseState, PlayerStats, Score,
+    ShootSound, ShootTimer,
+};
+use crate::MainState;
 
 pub fn spawn_enemies(
     mut commands: Commands,
@@ -127,6 +128,7 @@ pub fn handle_collisions(
     mut player_hit_messages: MessageWriter<PlayerHit>,
     mut enemy_killed_messages: MessageWriter<EnemyKilled>,
     hit_sound: Res<HitSound>,
+    hit_self_sound: Res<HitSelfSound>,
     player_query: Query<(Entity, &Transform), With<Player>>,
     enemies: Query<(Entity, &Transform, &EnemyAttributes), With<Enemy>>,
     projectiles: Query<(Entity, &Transform), With<Projectile>>,
@@ -196,6 +198,10 @@ pub fn handle_collisions(
             if player_stats.health > 0 {
                 player_stats.health = (player_stats.health - attributes.damage).max(0);
                 player_hit_messages.write(PlayerHit);
+                commands.spawn((
+                    AudioPlayer(hit_self_sound.0.clone()),
+                    PlaybackSettings::DESPAWN,
+                ));
             }
         }
     }

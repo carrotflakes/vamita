@@ -18,7 +18,7 @@ use movement::{
     constrain_to_arena, decay_lifetimes, enemy_seek_player, update_projectiles, update_velocity,
 };
 use resources::{
-    EnemyCatalog, EnemySpawnTimer, HitSound, PauseState, PlayerStats, Score, ShootSound, ShootTimer,
+    EnemyCatalog, EnemySpawnTimer, HitSound, PauseState, PlayerStats, HitSelfSound, Score, ShootSound, ShootTimer,
 };
 use state::pause_menu_actions;
 
@@ -60,9 +60,11 @@ struct OnGameScreen;
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font_handle = asset_server.load("fonts/FiraSans-Bold.ttf");
     let hit_sound_handle = asset_server.load("sounds/hit.wav");
+    let hit_self_sound_handle = asset_server.load("sounds/hit_self.wav");
     let shoot_sound_handle = asset_server.load("sounds/shoot.wav");
 
     commands.insert_resource(HitSound(hit_sound_handle));
+    commands.insert_resource(HitSelfSound(hit_self_sound_handle));
     commands.insert_resource(ShootSound(shoot_sound_handle));
 
     commands.insert_resource(EnemySpawnTimer(Timer::from_seconds(

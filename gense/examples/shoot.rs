@@ -1,5 +1,3 @@
-// cargo run --example render_to_wav
-
 use gense::effect as fx;
 use gense::envelope::Exponential as exp;
 use gense::oscillator as osc;

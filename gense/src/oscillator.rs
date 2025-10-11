@@ -23,3 +23,12 @@ pub fn noise(seed: u32, t: f32) -> f32 {
         & 0x7fffffff;
     1.0 - (x as f32 / 1073741824.0)
 }
+
+pub fn phase(sample_rate: f32) -> impl FnMut(f32) -> f32 {
+    let mut phase = 0.0;
+    move |freq| {
+        let p = phase;
+        phase = (phase + freq / sample_rate) % 1.0;
+        p
+    }
+}
