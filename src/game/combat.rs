@@ -220,24 +220,29 @@ pub fn handle_collisions(
 
 fn spawn_enemy_death_particles(commands: &mut Commands, position: Vec2, color: Color) {
     let mut rng = rand::rng();
-    for _ in 0..ENEMY_DEATH_PARTICLES {
-        let angle = rng.random_range(0.0f32..TAU);
-        let speed = rng.random_range(ENEMY_DEATH_PARTICLE_SPEED * 0.6..ENEMY_DEATH_PARTICLE_SPEED);
-        let velocity = Vec2::new(angle.cos(), angle.sin()) * speed;
-        let lifetime =
-            rng.random_range(ENEMY_DEATH_PARTICLE_LIFETIME * 0.7..ENEMY_DEATH_PARTICLE_LIFETIME);
-
-        commands.spawn((
-            DespawnOnExit(MainState::Game),
-            Sprite::from_color(color, ENEMY_DEATH_PARTICLE_SIZE),
-            Transform::from_translation(Vec3::new(position.x, position.y, 5.0)),
-            Velocity(velocity),
-            Lifetime {
-                timer: Timer::from_seconds(lifetime, TimerMode::Once),
-            },
-            Particle,
-        ));
-    }
+    commands.spawn_batch(
+        (0..ENEMY_DEATH_PARTICLES)
+            .map(|_| {
+                let angle = rng.random_range(0.0f32..TAU);
+                let speed =
+                    rng.random_range(ENEMY_DEATH_PARTICLE_SPEED * 0.6..ENEMY_DEATH_PARTICLE_SPEED);
+                let velocity = Vec2::new(angle.cos(), angle.sin()) * speed;
+                let lifetime = rng.random_range(
+                    ENEMY_DEATH_PARTICLE_LIFETIME * 0.7..ENEMY_DEATH_PARTICLE_LIFETIME,
+                );
+                (
+                    DespawnOnExit(MainState::Game),
+                    Sprite::from_color(color, ENEMY_DEATH_PARTICLE_SIZE),
+                    Transform::from_translation(Vec3::new(position.x, position.y, 5.0)),
+                    Velocity(velocity),
+                    Lifetime {
+                        timer: Timer::from_seconds(lifetime, TimerMode::Once),
+                    },
+                    Particle,
+                )
+            })
+            .collect::<Vec<_>>(),
+    );
 }
 
 fn collide(a_pos: Vec2, a_size: Vec2, b_pos: Vec2, b_size: Vec2) -> bool {
