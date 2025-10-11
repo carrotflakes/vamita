@@ -27,13 +27,4 @@ pub struct EnemyAttributes {
 }
 
 #[derive(Component)]
-pub struct ScoreText;
-
-#[derive(Component)]
-pub struct HealthText;
-
-#[derive(Component)]
-pub struct PauseOverlay;
-
-#[derive(Component)]
 pub struct Particle;

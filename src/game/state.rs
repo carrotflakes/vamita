@@ -1,12 +1,13 @@
 use bevy::input::ButtonInput;
 use bevy::prelude::*;
 
-use super::components::{Enemy, PauseOverlay, Player, Projectile, Velocity};
+use super::components::{Enemy, Player, Projectile, Velocity};
 use super::constants::PLAYER_MAX_HEALTH;
 use super::resources::{EnemySpawnTimer, PauseState, PlayerStats, Score, ShootTimer};
 
 use crate::MainState;
 use crate::game::spawn_player;
+use crate::game::ui::PauseOverlay;
 
 pub fn pause_menu_actions(
     kb: Res<ButtonInput<KeyCode>>,

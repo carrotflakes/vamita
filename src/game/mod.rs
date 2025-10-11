@@ -10,7 +10,7 @@ mod ui;
 
 use bevy::prelude::*;
 use combat::{handle_collisions, player_auto_fire, spawn_enemies};
-use components::{HealthText, Player, Velocity};
+use components::{Player, Velocity};
 use constants::{ENEMY_SPAWN_INTERVAL, FIRE_RATE, PLAYER_MAX_HEALTH, PLAYER_SIZE};
 use events::{EnemyKilled, PlayerHit};
 use input::{pause_input, player_input};
@@ -23,7 +23,7 @@ use resources::{
 };
 use state::pause_menu_actions;
 
-use crate::{BGM, MainState};
+use crate::{BGM, MainState, game::ui::HealthText};
 
 pub fn plugin(app: &mut App) {
     app.add_systems(OnEnter(MainState::Game), (setup, ui::setup))

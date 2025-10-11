@@ -1,8 +1,16 @@
 use bevy::prelude::*;
 
 use crate::MainState;
-use super::components::{PauseOverlay, ScoreText};
 use super::resources::Score;
+
+#[derive(Component)]
+pub struct ScoreText;
+
+#[derive(Component)]
+pub struct HealthText;
+
+#[derive(Component)]
+pub struct PauseOverlay;
 
 #[derive(Component)]
 pub struct ScoreboardUi;

@@ -1,7 +1,9 @@
 use bevy::input::ButtonInput;
 use bevy::prelude::*;
 
-use super::components::{PauseOverlay, Player, Velocity};
+use crate::game::ui::PauseOverlay;
+
+use super::components::{Player, Velocity};
 use super::resources::PauseState;
 
 pub fn player_input(
