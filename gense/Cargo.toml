@@ -1,0 +1,9 @@
+[package]
+name = "gense"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[dev-dependencies]
+hound = "3.4.0"
