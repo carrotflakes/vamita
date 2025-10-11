@@ -18,7 +18,8 @@ use movement::{
     constrain_to_arena, decay_lifetimes, enemy_seek_player, update_projectiles, update_velocity,
 };
 use resources::{
-    EnemyCatalog, EnemySpawnTimer, HitSound, PauseState, PlayerStats, HitSelfSound, Score, ShootSound, ShootTimer,
+    EnemyCatalog, EnemySpawnTimer, HitSelfSound, HitSound, PauseState, PlayerStats, Score,
+    ShootSound, ShootTimer,
 };
 use state::pause_menu_actions;
 
@@ -33,15 +34,8 @@ pub fn plugin(app: &mut App) {
             Update,
             (
                 pause_input,
-                pause_menu_actions,
                 player_input,
-                update_velocity,
-                enemy_seek_player,
-                update_projectiles,
-                constrain_to_arena,
-                handle_collisions,
-                spawn_enemies,
-                player_auto_fire,
+                pause_menu_actions,
                 ui::update_score_text,
                 update_health_text,
             )
@@ -50,7 +44,18 @@ pub fn plugin(app: &mut App) {
         )
         .add_systems(
             FixedUpdate,
-            decay_lifetimes.run_if(in_state(MainState::Game)),
+            (
+                update_velocity,
+                enemy_seek_player,
+                update_projectiles,
+                constrain_to_arena,
+                handle_collisions,
+                spawn_enemies,
+                player_auto_fire,
+                decay_lifetimes,
+            )
+                .chain()
+                .run_if(in_state(MainState::Game)),
         );
 }
 
