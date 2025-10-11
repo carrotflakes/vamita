@@ -1,8 +1,8 @@
 use bevy::input::ButtonInput;
 use bevy::prelude::*;
 
-use crate::components::{PauseOverlay, Player, Velocity};
-use crate::resources::PauseState;
+use super::components::{PauseOverlay, Player, Velocity};
+use super::resources::PauseState;
 
 pub fn player_input(
     mut query: Query<&mut Velocity, With<Player>>,
@@ -28,7 +28,7 @@ pub fn player_input(
             dir.x += 1.0;
         }
         let dir = dir.normalize_or_zero();
-        velocity.0 = dir * crate::constants::PLAYER_SPEED;
+        velocity.0 = dir * super::constants::PLAYER_SPEED;
     }
 }
 

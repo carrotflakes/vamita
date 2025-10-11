@@ -1,13 +1,19 @@
 use bevy::prelude::*;
 
-use crate::components::{HealthText, PauseOverlay, ScoreText};
-use crate::resources::{PlayerStats, Score};
+use crate::MainState;
+use super::components::{PauseOverlay, ScoreText};
+use super::resources::Score;
+
+#[derive(Component)]
+pub struct ScoreboardUi;
 
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font_handle = asset_server.load("fonts/FiraSans-Bold.ttf");
 
     commands.spawn((
-        Text2d("Score: 0".to_string()),
+        DespawnOnExit(MainState::Game),
+        ScoreboardUi,
+        Text2d("Score: ".to_string()),
         TextFont {
             font: font_handle.clone(),
             font_size: 32.0,
@@ -16,11 +22,20 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         TextColor(Color::WHITE),
         Transform::from_translation(Vec3::new(-200.0, 200.0, 1.0)),
         ScoreText,
+        children![(
+            TextSpan::default(),
+            TextFont {
+                font_size: 32.0,
+                ..default()
+            },
+            TextColor(Color::WHITE),
+        )],
     ));
 
     const MARGIN: Val = Val::Px(16.0);
 
     commands.spawn((
+        DespawnOnExit(MainState::Game),
         Node {
             width: percent(100),
             height: percent(100),
@@ -35,7 +50,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         Visibility::Hidden,
         PauseOverlay,
         children!((
-            Text::new("Paused\nEnter: Resume\nN: New Game".to_string()),
+            Text::new("Paused\nEnter: Resume\nN: New Game\nQ: Back to Menu".to_string()),
             TextFont {
                 font: font_handle.clone(),
                 font_size: 48.0,
@@ -48,24 +63,8 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 pub fn update_score_text(
     score: Res<Score>,
-    player_stats: Res<PlayerStats>,
-    mut query: Query<&mut Text2d, With<ScoreText>>,
+    score_root: Single<Entity, (With<ScoreboardUi>, With<Text2d>)>,
+    mut writer: TextUiWriter,
 ) {
-    let label = if player_stats.health > 0 {
-        format!("Score: {}", score.0)
-    } else {
-        format!("GAME OVER — Score: {}", score.0)
-    };
-    for mut text in &mut query {
-        text.0 = label.clone();
-    }
-}
-
-pub fn update_health_text(
-    player_stats: Res<PlayerStats>,
-    mut query: Query<&mut Text2d, With<HealthText>>,
-) {
-    for mut text in &mut query {
-        text.0 = format!("HP: {}", player_stats.health.max(0));
-    }
+    *writer.text(*score_root, 1) = score.0.to_string();
 }

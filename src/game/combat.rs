@@ -4,14 +4,17 @@ use std::f32::consts::TAU;
 use bevy::prelude::*;
 use rand::Rng;
 
-use crate::components::{Enemy, EnemyAttributes, Lifetime, Particle, Player, Projectile, Velocity};
-use crate::constants::{
+use super::events::{EnemyKilled, PlayerHit};
+use super::resources::{
+    EnemyCatalog, EnemySpawnTimer, HitSound, PauseState, PlayerStats, Score, ShootSound, ShootTimer,
+};
+use crate::MainState;
+use super::components::{Enemy, EnemyAttributes, Lifetime, Particle, Player, Projectile, Velocity};
+use super::constants::{
     ARENA_HALF_SIZE, ENEMY_DEATH_PARTICLE_LIFETIME, ENEMY_DEATH_PARTICLE_SIZE,
     ENEMY_DEATH_PARTICLE_SPEED, ENEMY_DEATH_PARTICLES, PLAYER_SIZE, PROJECTILE_SIZE,
     PROJECTILE_SPEED,
 };
-use crate::events::{EnemyKilled, PlayerHit};
-use crate::resources::{EnemyCatalog, EnemySpawnTimer, HitSound, PauseState, PlayerStats, Score, ShootSound, ShootTimer};
 
 pub fn spawn_enemies(
     mut commands: Commands,
@@ -46,6 +49,7 @@ pub fn spawn_enemies(
         let dir = (target - Vec2::new(x, y)).normalize_or_zero();
 
         commands.spawn((
+            DespawnOnExit(MainState::Game),
             Sprite {
                 color: attributes.color,
                 custom_size: Some(attributes.size),
@@ -96,6 +100,7 @@ pub fn player_auto_fire(
             });
 
         commands.spawn((
+            DespawnOnExit(MainState::Game),
             Sprite {
                 color: Color::srgba(1.0, 1.0, 0.0, 0.8),
                 custom_size: Some(PROJECTILE_SIZE),
@@ -167,10 +172,7 @@ pub fn handle_collisions(
                 projectiles_to_despawn.insert(*projectile_entity);
                 score.0 += attributes.score_value;
                 enemy_killed_messages.write(EnemyKilled);
-                commands.spawn((
-                    AudioPlayer(hit_sound.0.clone()),
-                    PlaybackSettings::DESPAWN,
-                ));
+                commands.spawn((AudioPlayer(hit_sound.0.clone()), PlaybackSettings::DESPAWN));
                 spawn_enemy_death_particles(&mut commands, *enemy_pos, attributes.color);
                 break;
             }
@@ -214,14 +216,13 @@ fn spawn_enemy_death_particles(commands: &mut Commands, position: Vec2, color: C
     let mut rng = rand::rng();
     for _ in 0..ENEMY_DEATH_PARTICLES {
         let angle = rng.random_range(0.0f32..TAU);
-        let speed =
-            rng.random_range(ENEMY_DEATH_PARTICLE_SPEED * 0.6..ENEMY_DEATH_PARTICLE_SPEED);
+        let speed = rng.random_range(ENEMY_DEATH_PARTICLE_SPEED * 0.6..ENEMY_DEATH_PARTICLE_SPEED);
         let velocity = Vec2::new(angle.cos(), angle.sin()) * speed;
-        let lifetime = rng.random_range(
-            ENEMY_DEATH_PARTICLE_LIFETIME * 0.7..ENEMY_DEATH_PARTICLE_LIFETIME,
-        );
+        let lifetime =
+            rng.random_range(ENEMY_DEATH_PARTICLE_LIFETIME * 0.7..ENEMY_DEATH_PARTICLE_LIFETIME);
 
         commands.spawn((
+            DespawnOnExit(MainState::Game),
             Sprite::from_color(color, ENEMY_DEATH_PARTICLE_SIZE),
             Transform::from_translation(Vec3::new(position.x, position.y, 5.0)),
             Velocity(velocity),

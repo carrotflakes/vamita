@@ -1,13 +1,12 @@
 use bevy::input::ButtonInput;
 use bevy::prelude::*;
 
-use crate::components::{Enemy, PauseOverlay, Player, Projectile, Velocity};
-use crate::constants::PLAYER_MAX_HEALTH;
-use crate::resources::{
-    EnemySpawnTimer, PauseState, PlayerStats, Score, ShootTimer, UiAssets,
-};
+use super::components::{Enemy, PauseOverlay, Player, Projectile, Velocity};
+use super::constants::PLAYER_MAX_HEALTH;
+use super::resources::{EnemySpawnTimer, PauseState, PlayerStats, Score, ShootTimer};
 
-use super::setup::spawn_player;
+use crate::MainState;
+use crate::game::spawn_player;
 
 pub fn pause_menu_actions(
     kb: Res<ButtonInput<KeyCode>>,
@@ -21,7 +20,8 @@ pub fn pause_menu_actions(
     mut player_query: Query<(Entity, &mut Transform, &mut Velocity), With<Player>>,
     enemy_query: Query<Entity, With<Enemy>>,
     projectile_query: Query<Entity, With<Projectile>>,
-    assets: Res<UiAssets>,
+    asset_server: Res<AssetServer>,
+    mut game_state: ResMut<NextState<MainState>>,
 ) {
     if !pause_state.paused {
         return;
@@ -45,12 +45,16 @@ pub fn pause_menu_actions(
             &mut player_query,
             &enemy_query,
             &projectile_query,
-            &assets,
+            &asset_server,
         );
         pause_state.paused = false;
         if let Some(mut visibility) = overlay.iter_mut().next() {
             *visibility = Visibility::Hidden;
         }
+    }
+
+    if kb.just_pressed(KeyCode::KeyQ) {
+        game_state.set(MainState::Menu);
     }
 }
 
@@ -63,8 +67,9 @@ fn reset_game(
     player_query: &mut Query<(Entity, &mut Transform, &mut Velocity), With<Player>>,
     enemy_query: &Query<Entity, With<Enemy>>,
     projectile_query: &Query<Entity, With<Projectile>>,
-    assets: &UiAssets,
+    asset_server: &Res<AssetServer>,
 ) {
+    let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     score.0 = 0;
     player_stats.health = PLAYER_MAX_HEALTH;
     enemy_spawn.0.reset();
@@ -81,6 +86,6 @@ fn reset_game(
         transform.translation = Vec3::new(0.0, 0.0, 0.0);
         velocity.0 = Vec2::ZERO;
     } else {
-        spawn_player(commands, &assets.font);
+        spawn_player(commands, &font);
     }
 }

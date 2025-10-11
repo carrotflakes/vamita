@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
-use crate::components::{Enemy, EnemyAttributes, Lifetime, Player, Projectile, Velocity};
-use crate::constants::ARENA_HALF_SIZE;
-use crate::resources::PauseState;
+use super::components::{Enemy, EnemyAttributes, Lifetime, Player, Projectile, Velocity};
+use super::constants::ARENA_HALF_SIZE;
+use super::resources::PauseState;
 
 pub fn update_velocity(
     time: Res<Time>,

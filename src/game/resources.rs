@@ -1,8 +1,8 @@
 use bevy::prelude::*;
-use rand::prelude::*;
 use rand::Rng;
+use rand::prelude::*;
 
-use crate::components::EnemyAttributes;
+use super::components::EnemyAttributes;
 
 #[derive(Resource)]
 pub struct EnemySpawnTimer(pub Timer);
@@ -24,16 +24,10 @@ pub struct PauseState {
 }
 
 #[derive(Resource, Clone)]
-pub struct UiAssets {
-    pub font: Handle<Font>,
-}
-
-#[derive(Resource, Clone)]
 pub struct HitSound(pub Handle<AudioSource>);
 
 #[derive(Resource, Clone)]
 pub struct ShootSound(pub Handle<AudioSource>);
-
 
 #[derive(Copy, Clone)]
 pub struct EnemyPrototype {
