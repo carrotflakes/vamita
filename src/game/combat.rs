@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use rand::Rng;
 
 use super::components::{
-    Enemy, EnemyAttributes, ExperienceOrb, Lifetime, Particle, Projectile, Velocity,
+    BombExplosion, Enemy, EnemyAttributes, ExperienceOrb, Lifetime, Particle, Projectile, Velocity,
 };
 use super::constants::{
     ENEMY_DEATH_PARTICLE_LIFETIME, ENEMY_DEATH_PARTICLE_SIZE, ENEMY_DEATH_PARTICLE_SPEED,
@@ -33,6 +33,7 @@ pub fn handle_collisions(
     player_query: Query<(Entity, &Transform), With<Player>>,
     enemies: Query<(Entity, &Transform, &EnemyAttributes), With<Enemy>>,
     projectiles: Query<(Entity, &Transform), With<Projectile>>,
+    bomb_explosions: Query<(Entity, &Transform, &BombExplosion)>,
     pause_state: Res<PauseState>,
 ) {
     if pause_state.paused {
@@ -51,6 +52,12 @@ pub fn handle_collisions(
         .iter()
         .map(|(entity, transform)| (entity, transform.translation.xy()))
         .collect();
+    let bomb_explosions_data: Vec<(Entity, Vec2, f32)> = bomb_explosions
+        .iter()
+        .map(|(entity, transform, explosion)| {
+            (entity, transform.translation.xy(), explosion.radius)
+        })
+        .collect();
 
     let mut enemies_to_despawn: HashSet<Entity> = HashSet::new();
     let mut projectiles_to_despawn: HashSet<Entity> = HashSet::new();
@@ -68,6 +75,18 @@ pub fn handle_collisions(
             if collide(*enemy_pos, *projectile_pos, 12.0) {
                 enemies_to_despawn.insert(*enemy_entity);
                 projectiles_to_despawn.insert(*projectile_entity);
+                score.0 += attributes.score_value;
+                enemy_killed_messages.write(EnemyKilled);
+                commands.spawn((AudioPlayer(hit_sound.0.clone()), PlaybackSettings::DESPAWN));
+                spawn_enemy_death_particles(&mut commands, *enemy_pos, attributes.color);
+                spawn_experience_orb(&mut commands, *enemy_pos, attributes.xp_value);
+                break;
+            }
+        }
+
+        for (_, explosion_pos, radius) in &bomb_explosions_data {
+            if collide(*enemy_pos, *explosion_pos, *radius) {
+                enemies_to_despawn.insert(*enemy_entity);
                 score.0 += attributes.score_value;
                 enemy_killed_messages.write(EnemyKilled);
                 commands.spawn((AudioPlayer(hit_sound.0.clone()), PlaybackSettings::DESPAWN));

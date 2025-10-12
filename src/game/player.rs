@@ -1,12 +1,14 @@
 use bevy::input::ButtonInput;
 use bevy::prelude::*;
 
-use super::components::Velocity;
-use super::constants::PROJECTILE_SPEED;
+use super::components::{Bomb, BombExplosion, Lifetime, Velocity};
+use super::constants::{
+    BOMB_EXPLOSION_DURATION, BOMB_EXPLOSION_RADIUS, BOMB_FUSE, PROJECTILE_SPEED,
+};
 use super::pause::PauseState;
-use super::resources::ShootSound;
+use super::resources::{BombSound, ShootSound};
 use crate::MainState;
-use crate::game::components::{Enemy, Lifetime, Projectile};
+use crate::game::components::{Enemy, Projectile};
 use crate::game::constants::{ARENA_HALF_SIZE, PLAYER_SIZE};
 use crate::game::ui::HealthText;
 
@@ -24,6 +26,9 @@ pub struct PlayerStats {
 
 #[derive(Resource)]
 pub struct ShootTimer(pub Timer);
+
+#[derive(Resource)]
+pub struct BombTimer(pub Timer);
 
 pub fn player_input(
     mut query: Query<&mut Velocity, With<Player>>,
@@ -108,6 +113,71 @@ pub fn player_auto_fire(
             AudioPlayer(shoot_sound.0.clone()),
             PlaybackSettings::DESPAWN,
         ));
+    }
+}
+
+pub fn player_place_bomb(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut timer: ResMut<BombTimer>,
+    player_query: Query<&Transform, With<Player>>,
+    pause_state: Res<PauseState>,
+) {
+    if pause_state.paused {
+        return;
+    }
+
+    if timer.0.tick(time.delta()).just_finished() {
+        let Ok(transform) = player_query.single() else {
+            return;
+        };
+
+        let position = transform.translation;
+        commands.spawn((
+            DespawnOnExit(MainState::Game),
+            Sprite::from_color(Color::srgba(1.0, 0.45, 0.1, 0.9), Vec2::splat(24.0)),
+            Transform::from_translation(Vec3::new(position.x, position.y, 0.4)),
+            Bomb {
+                timer: Timer::from_seconds(BOMB_FUSE, TimerMode::Once),
+                radius: BOMB_EXPLOSION_RADIUS,
+            },
+        ));
+    }
+}
+
+pub fn update_bombs(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut bombs: Query<(Entity, &Transform, &mut Bomb)>,
+    pause_state: Res<PauseState>,
+    bomb_sound: Res<BombSound>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    if pause_state.paused {
+        return;
+    }
+
+    for (entity, transform, mut bomb) in &mut bombs {
+        if bomb.timer.tick(time.delta()).just_finished() {
+            let position = transform.translation;
+            commands.entity(entity).despawn();
+            commands.spawn((
+                DespawnOnExit(MainState::Game),
+                Mesh2d(meshes.add(Circle {
+                    radius: bomb.radius,
+                })),
+                MeshMaterial2d(materials.add(Color::srgba(1.0, 0.6, 0.2, 0.35))),
+                Transform::from_translation(Vec3::new(position.x, position.y, 0.5)),
+                BombExplosion {
+                    radius: bomb.radius,
+                },
+                Lifetime {
+                    timer: Timer::from_seconds(BOMB_EXPLOSION_DURATION, TimerMode::Once),
+                },
+            ));
+            commands.spawn((AudioPlayer(bomb_sound.0.clone()), PlaybackSettings::DESPAWN));
+        }
     }
 }
 

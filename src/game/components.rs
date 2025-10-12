@@ -6,6 +6,17 @@ pub struct Enemy;
 #[derive(Component)]
 pub struct Projectile;
 
+#[derive(Component)]
+pub struct Bomb {
+    pub timer: Timer,
+    pub radius: f32,
+}
+
+#[derive(Component)]
+pub struct BombExplosion {
+    pub radius: f32,
+}
+
 #[derive(Component, Deref, DerefMut)]
 pub struct Velocity(pub Vec2);
 

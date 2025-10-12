@@ -3,8 +3,7 @@ use bevy::prelude::*;
 use super::MainState;
 
 pub fn plugin(app: &mut App) {
-    app
-        .add_systems(OnEnter(MainState::Splash), setup)
+    app.add_systems(OnEnter(MainState::Splash), setup)
         .add_systems(Update, countdown.run_if(in_state(MainState::Splash)));
 }
 
