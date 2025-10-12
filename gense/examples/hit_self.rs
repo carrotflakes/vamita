@@ -5,10 +5,14 @@ fn main() {
     let sample_rate = 44100;
 
     let fun = {
+        let mut time = osc::time(sample_rate as f32);
         let mut ph = osc::phase(sample_rate as f32);
         let env = exp::new(0.0001, 0.5);
         let fenv = gense::envelope::Path::new(vec![(0.0, 200.0), (0.1, 100.0), (0.2, 200.0)]);
-        move |t| (osc::triangle(ph(fenv.get(t))) * env.get(t) * 0.25)
+        move || {
+            let t = time();
+            osc::triangle(ph(fenv.get(t))) * env.get(t) * 0.25
+        }
     };
 
     let buffer = gense::render(0.3, sample_rate, fun);

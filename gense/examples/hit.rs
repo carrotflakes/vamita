@@ -6,9 +6,13 @@ fn main() {
     let sample_rate = 44100;
 
     let fun = {
+        let mut time = osc::time(sample_rate as f32);
         let env = exp::new(0.0001, 0.5);
         let mut filter = fx::bpf(sample_rate as f32, 1000.0, 10.0);
-        move |t| filter((osc::noise(1, t * 1000.0)) * env.get(t))
+        move || {
+            let t = time();
+            filter((osc::noise(1, t * 1000.0)) * env.get(t))
+        }
     };
 
     let buffer = gense::render(1.0, sample_rate, fun);

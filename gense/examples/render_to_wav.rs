@@ -8,9 +8,11 @@ fn main() {
     let sample_rate = 44100;
 
     let fun = {
+        let mut time = osc::time(sample_rate as f32);
         let env = exp::new(0.0001, 0.5);
         let mut filter = fx::lpf();
-        move |t| {
+        move || {
+            let t = time();
             filter(
                 fx::alpha(sample_rate as f32, 2000.0 * (env.get(t) + 0.1)),
                 fx::soft_clip(

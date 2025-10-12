@@ -32,3 +32,13 @@ pub fn phase(sample_rate: f32) -> impl FnMut(f32) -> f32 {
         p
     }
 }
+
+pub fn time(sample_rate: f32) -> impl FnMut() -> f32 {
+    let delta = 1.0 / sample_rate;
+    let mut acc = 0.0;
+    move || {
+        let a = acc;
+        acc += delta;
+        a
+    }
+}

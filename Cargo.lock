@@ -2324,6 +2324,7 @@ name = "gense"
 version = "0.1.0"
 dependencies = [
  "hound",
+ "rand",
 ]
 
 [[package]]
