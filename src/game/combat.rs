@@ -16,6 +16,7 @@ use super::events::{EnemyKilled, PlayerHit};
 use super::pause::PauseState;
 use super::resources::{HitSelfSound, HitSound};
 use crate::MainState;
+use crate::game::components::LevelEntity;
 use crate::game::player::{Player, PlayerStats};
 use crate::game::ui::Score;
 
@@ -143,6 +144,7 @@ fn spawn_enemy_death_particles(commands: &mut Commands, position: Vec2, color: C
                 );
                 (
                     DespawnOnExit(MainState::Game),
+                    LevelEntity,
                     Sprite::from_color(color, ENEMY_DEATH_PARTICLE_SIZE),
                     Transform::from_translation(Vec3::new(position.x, position.y, 5.0)),
                     Velocity(velocity),
@@ -164,6 +166,7 @@ fn spawn_experience_orb(commands: &mut Commands, position: Vec2, value: u32) {
     let velocity = Vec2::new(angle.cos(), angle.sin()) * speed;
     commands.spawn((
         DespawnOnExit(MainState::Game),
+        LevelEntity,
         Sprite {
             color: Color::srgba(0.3, 0.9, 0.5, 0.95),
             custom_size: Some(EXPERIENCE_ORB_SIZE),

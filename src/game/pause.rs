@@ -1,12 +1,8 @@
 use bevy::input::ButtonInput;
 use bevy::prelude::*;
 
-use super::components::{Enemy, ExperienceOrb, Projectile, Velocity};
-use super::constants::PLAYER_MAX_HEALTH;
-use super::ui::Score;
-
-use crate::game::combat::EnemySpawnTimer;
-use crate::game::player::{Player, PlayerStats, ShootTimer, spawn_player};
+use crate::game::components::LevelEntity;
+use crate::game::reset_game;
 use crate::game::ui::PauseOverlay;
 use crate::{Difficulty, MainState};
 
@@ -38,14 +34,7 @@ pub fn pause_menu_actions(
     mut pause_state: ResMut<PauseState>,
     mut overlay: Query<&mut Visibility, With<PauseOverlay>>,
     mut commands: Commands,
-    mut score: ResMut<Score>,
-    mut player_stats: ResMut<PlayerStats>,
-    mut enemy_spawn: ResMut<EnemySpawnTimer>,
-    mut shoot_timer: ResMut<ShootTimer>,
-    mut player_query: Query<(Entity, &mut Transform, &mut Velocity), With<Player>>,
-    enemy_query: Query<Entity, With<Enemy>>,
-    projectile_query: Query<Entity, With<Projectile>>,
-    exp_orb_query: Query<Entity, With<ExperienceOrb>>,
+    level_entity_query: Query<Entity, With<LevelEntity>>,
     asset_server: Res<AssetServer>,
     difficulty: Res<Difficulty>,
     mut game_state: ResMut<NextState<MainState>>,
@@ -65,14 +54,7 @@ pub fn pause_menu_actions(
     if kb.just_pressed(KeyCode::KeyN) {
         reset_game(
             &mut commands,
-            &mut score,
-            &mut player_stats,
-            &mut enemy_spawn,
-            &mut shoot_timer,
-            &mut player_query,
-            &enemy_query,
-            &projectile_query,
-            &exp_orb_query,
+            Some(&level_entity_query),
             &asset_server,
             *difficulty,
         );
@@ -84,43 +66,5 @@ pub fn pause_menu_actions(
 
     if kb.just_pressed(KeyCode::KeyQ) {
         game_state.set(MainState::Menu);
-    }
-}
-
-fn reset_game(
-    commands: &mut Commands,
-    score: &mut ResMut<Score>,
-    player_stats: &mut ResMut<PlayerStats>,
-    enemy_spawn: &mut ResMut<EnemySpawnTimer>,
-    shoot_timer: &mut ResMut<ShootTimer>,
-    player_query: &mut Query<(Entity, &mut Transform, &mut Velocity), With<Player>>,
-    enemy_query: &Query<Entity, With<Enemy>>,
-    projectile_query: &Query<Entity, With<Projectile>>,
-    exp_orb_query: &Query<Entity, With<ExperienceOrb>>,
-    asset_server: &Res<AssetServer>,
-    difficulty: Difficulty,
-) {
-    let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-    score.0 = 0;
-    player_stats.health = difficulty.player_max_health(PLAYER_MAX_HEALTH);
-    player_stats.experience = 0;
-    enemy_spawn.0.reset();
-    shoot_timer.0.reset();
-
-    for entity in enemy_query.iter() {
-        commands.entity(entity).despawn();
-    }
-    for entity in projectile_query.iter() {
-        commands.entity(entity).despawn();
-    }
-    for entity in exp_orb_query.iter() {
-        commands.entity(entity).despawn();
-    }
-
-    if let Some((_entity, mut transform, mut velocity)) = player_query.iter_mut().next() {
-        transform.translation = Vec3::new(0.0, 0.0, 0.0);
-        velocity.0 = Vec2::ZERO;
-    } else {
-        spawn_player(commands, &font);
     }
 }

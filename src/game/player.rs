@@ -8,7 +8,7 @@ use super::constants::{
 use super::pause::PauseState;
 use super::resources::{BombSound, ShootSound};
 use crate::MainState;
-use crate::game::components::{Enemy, Projectile};
+use crate::game::components::{Enemy, LevelEntity, Projectile};
 use crate::game::constants::{ARENA_HALF_SIZE, PLAYER_SIZE};
 use crate::game::ui::HealthText;
 
@@ -96,6 +96,7 @@ pub fn player_auto_fire(
 
         commands.spawn((
             DespawnOnExit(MainState::Game),
+            LevelEntity,
             Sprite {
                 color: Color::srgba(1.0, 1.0, 0.0, 0.8),
                 custom_size: Some(Vec2::new(12.0, 6.0)),
@@ -135,6 +136,7 @@ pub fn player_place_bomb(
         let position = transform.translation;
         commands.spawn((
             DespawnOnExit(MainState::Game),
+            LevelEntity,
             Sprite::from_color(Color::srgba(1.0, 0.45, 0.1, 0.9), Vec2::splat(24.0)),
             Transform::from_translation(Vec3::new(position.x, position.y, 0.4)),
             Bomb {
@@ -164,6 +166,7 @@ pub fn update_bombs(
             commands.entity(entity).despawn();
             commands.spawn((
                 DespawnOnExit(MainState::Game),
+                LevelEntity,
                 Mesh2d(meshes.add(Circle {
                     radius: bomb.radius,
                 })),
@@ -204,6 +207,7 @@ pub fn constrain_to_arena(
 pub fn spawn_player(commands: &mut Commands, handle_font: &Handle<Font>) {
     commands.spawn((
         DespawnOnExit(MainState::Game),
+        LevelEntity,
         Sprite::from_color(Color::srgb(0.2, 0.8, 1.0), PLAYER_SIZE),
         Transform::default(),
         Player,

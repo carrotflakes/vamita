@@ -1,5 +1,9 @@
 use bevy::prelude::*;
 
+/// Entities with this component will be despawned on game reset.
+#[derive(Component)]
+pub struct LevelEntity;
+
 #[derive(Component)]
 pub struct Enemy;
 

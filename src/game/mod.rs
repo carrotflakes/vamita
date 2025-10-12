@@ -24,8 +24,10 @@ use crate::{
     BGM, Difficulty, MainState,
     game::{
         combat::EnemySpawnTimer,
+        components::LevelEntity,
         enemy::EnemyCatalog,
-        player::{BombTimer, PlayerStats, ShootTimer},
+        player::{BombTimer, PlayerStats, ShootTimer, spawn_player},
+        ui::Score,
     },
 };
 
@@ -70,7 +72,6 @@ pub fn plugin(app: &mut App) {
 struct OnGameScreen;
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>, difficulty: Res<Difficulty>) {
-    let font_handle = asset_server.load("fonts/FiraSans-Bold.ttf");
     let hit_sound_handle = asset_server.load("sounds/hit.wav");
     let hit_self_sound_handle = asset_server.load("sounds/hit_self.wav");
     let shoot_sound_handle = asset_server.load("sounds/shoot.wav");
@@ -82,25 +83,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, difficulty: Res
     commands.insert_resource(ShootSound(shoot_sound_handle));
     commands.insert_resource(ExperienceOrbSound(exp_sound_handle));
     commands.insert_resource(BombSound(bomb_sound_handle));
-
-    commands.insert_resource(EnemySpawnTimer(Timer::from_seconds(
-        difficulty.enemy_spawn_interval(ENEMY_SPAWN_INTERVAL),
-        TimerMode::Repeating,
-    )));
-    commands.insert_resource(ShootTimer(Timer::from_seconds(
-        FIRE_RATE,
-        TimerMode::Repeating,
-    )));
-    commands.insert_resource(BombTimer(Timer::from_seconds(
-        BOMB_INTERVAL,
-        TimerMode::Repeating,
-    )));
-    commands.insert_resource(PlayerStats {
-        health: difficulty.player_max_health(PLAYER_MAX_HEALTH),
-        experience: 0,
-    });
-    commands.insert_resource(ui::Score::default());
-    commands.insert_resource(PauseState::default());
 
     commands.spawn((
         DespawnOnExit(MainState::Game),
@@ -123,5 +105,40 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, difficulty: Res
         PlaybackSettings::LOOP,
     ));
 
-    player::spawn_player(&mut commands, &font_handle);
+    reset_game(&mut commands, None, &asset_server, *difficulty);
+}
+
+pub fn reset_game(
+    commands: &mut Commands,
+    level_entity_query: Option<&Query<Entity, With<LevelEntity>>>,
+    asset_server: &Res<AssetServer>,
+    difficulty: Difficulty,
+) {
+    commands.insert_resource(EnemySpawnTimer(Timer::from_seconds(
+        difficulty.enemy_spawn_interval(ENEMY_SPAWN_INTERVAL),
+        TimerMode::Repeating,
+    )));
+    commands.insert_resource(ShootTimer(Timer::from_seconds(
+        FIRE_RATE,
+        TimerMode::Repeating,
+    )));
+    commands.insert_resource(BombTimer(Timer::from_seconds(
+        BOMB_INTERVAL,
+        TimerMode::Repeating,
+    )));
+    commands.insert_resource(PlayerStats {
+        health: difficulty.player_max_health(PLAYER_MAX_HEALTH),
+        experience: 0,
+    });
+    commands.insert_resource(Score::default());
+    commands.insert_resource(PauseState::default());
+
+    if let Some(level_entity_query) = level_entity_query {
+        for entity in level_entity_query.iter() {
+            commands.entity(entity).despawn();
+        }
+    }
+
+    let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+    spawn_player(commands, &font);
 }

@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use rand::Rng;
 use rand::prelude::*;
 
+use crate::game::components::LevelEntity;
 use crate::MainState;
 use crate::game::combat::EnemySpawnTimer;
 use crate::game::components::Enemy;
@@ -120,6 +121,7 @@ pub fn spawn_enemies(
 
         commands.spawn((
             DespawnOnExit(MainState::Game),
+            LevelEntity,
             Sprite {
                 color: attributes.color,
                 custom_size: Some(attributes.size),
