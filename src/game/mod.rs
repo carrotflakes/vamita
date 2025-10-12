@@ -25,7 +25,7 @@ use resources::{
 };
 use state::pause_menu_actions;
 
-use crate::{BGM, MainState, game::ui::HealthText};
+use crate::{BGM, Difficulty, MainState, game::ui::HealthText};
 
 pub fn plugin(app: &mut App) {
     app.add_systems(OnEnter(MainState::Game), (setup, ui::setup))
@@ -65,7 +65,7 @@ pub fn plugin(app: &mut App) {
 #[derive(Component)]
 struct OnGameScreen;
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>, difficulty: Res<Difficulty>) {
     let font_handle = asset_server.load("fonts/FiraSans-Bold.ttf");
     let hit_sound_handle = asset_server.load("sounds/hit.wav");
     let hit_self_sound_handle = asset_server.load("sounds/hit_self.wav");
@@ -78,7 +78,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(ExperienceOrbSound(exp_sound_handle));
 
     commands.insert_resource(EnemySpawnTimer(Timer::from_seconds(
-        ENEMY_SPAWN_INTERVAL,
+        difficulty.enemy_spawn_interval(ENEMY_SPAWN_INTERVAL),
         TimerMode::Repeating,
     )));
     commands.insert_resource(ShootTimer(Timer::from_seconds(
@@ -86,7 +86,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         TimerMode::Repeating,
     )));
     commands.insert_resource(PlayerStats {
-        health: PLAYER_MAX_HEALTH,
+        health: difficulty.player_max_health(PLAYER_MAX_HEALTH),
         experience: 0,
     });
     commands.insert_resource(Score::default());

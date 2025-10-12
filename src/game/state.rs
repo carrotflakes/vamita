@@ -1,13 +1,13 @@
 use bevy::input::ButtonInput;
 use bevy::prelude::*;
 
-use super::components::{Enemy, Player, Projectile, Velocity, ExperienceOrb};
+use super::components::{Enemy, ExperienceOrb, Player, Projectile, Velocity};
 use super::constants::PLAYER_MAX_HEALTH;
 use super::resources::{EnemySpawnTimer, PauseState, PlayerStats, Score, ShootTimer};
 
-use crate::MainState;
 use crate::game::spawn_player;
 use crate::game::ui::PauseOverlay;
+use crate::{Difficulty, MainState};
 
 pub fn pause_menu_actions(
     kb: Res<ButtonInput<KeyCode>>,
@@ -23,6 +23,7 @@ pub fn pause_menu_actions(
     projectile_query: Query<Entity, With<Projectile>>,
     exp_orb_query: Query<Entity, With<ExperienceOrb>>,
     asset_server: Res<AssetServer>,
+    difficulty: Res<Difficulty>,
     mut game_state: ResMut<NextState<MainState>>,
 ) {
     if !pause_state.paused {
@@ -49,6 +50,7 @@ pub fn pause_menu_actions(
             &projectile_query,
             &exp_orb_query,
             &asset_server,
+            *difficulty,
         );
         pause_state.paused = false;
         if let Some(mut visibility) = overlay.iter_mut().next() {
@@ -72,10 +74,11 @@ fn reset_game(
     projectile_query: &Query<Entity, With<Projectile>>,
     exp_orb_query: &Query<Entity, With<ExperienceOrb>>,
     asset_server: &Res<AssetServer>,
+    difficulty: Difficulty,
 ) {
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     score.0 = 0;
-    player_stats.health = PLAYER_MAX_HEALTH;
+    player_stats.health = difficulty.player_max_health(PLAYER_MAX_HEALTH);
     player_stats.experience = 0;
     enemy_spawn.0.reset();
     shoot_timer.0.reset();

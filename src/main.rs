@@ -24,6 +24,32 @@ pub enum DisplayQuality {
 #[derive(Resource, Debug, Component, PartialEq, Eq, Clone, Copy)]
 pub struct Volume(u32);
 
+#[derive(Resource, Debug, Component, PartialEq, Eq, Clone, Copy, Default)]
+pub enum Difficulty {
+    Easy,
+    #[default]
+    Normal,
+    Hard,
+}
+
+impl Difficulty {
+    pub fn enemy_spawn_interval(self, base: f32) -> f32 {
+        match self {
+            Difficulty::Easy => base * 1.5,
+            Difficulty::Normal => base,
+            Difficulty::Hard => base * 0.75,
+        }
+    }
+
+    pub fn player_max_health(self, base: i32) -> i32 {
+        match self {
+            Difficulty::Easy => base + 1,
+            Difficulty::Normal => base,
+            Difficulty::Hard => (base / 2).max(1),
+        }
+    }
+}
+
 #[derive(Component)]
 pub struct BGM;
 
@@ -33,6 +59,7 @@ fn main() {
         .insert_resource(ClearColor(Color::srgb(0.1, 0.1, 0.15)))
         .insert_resource(DisplayQuality::High)
         .insert_resource(Volume(5))
+        .insert_resource(Difficulty::default())
         .init_state::<MainState>()
         .add_systems(Startup, setup)
         .add_plugins((splash::plugin, menu::plugin, game::plugin))

@@ -5,15 +5,14 @@ use bevy::{
     prelude::*,
 };
 
-use crate::{BGM, DisplayQuality, Volume};
+use crate::{BGM, Difficulty, DisplayQuality, Volume};
 
 use super::MainState;
 
 const TEXT_COLOR: Color = Color::srgb(0.9, 0.9, 0.9);
 
 pub fn plugin(app: &mut App) {
-    app
-        .init_state::<MenuState>()
+    app.init_state::<MenuState>()
         .add_systems(OnEnter(MainState::Menu), menu_setup)
         .add_systems(OnEnter(MenuState::Main), main_menu_setup)
         .add_systems(OnEnter(MenuState::Settings), settings_menu_setup)
@@ -29,6 +28,10 @@ pub fn plugin(app: &mut App) {
         .add_systems(
             Update,
             setting_button::<Volume>.run_if(in_state(MenuState::SettingsSound)),
+        )
+        .add_systems(
+            Update,
+            setting_button::<Difficulty>.run_if(in_state(MenuState::Main)),
         )
         .add_systems(
             Update,
@@ -113,7 +116,11 @@ fn setting_button<T: Resource + Component + PartialEq + Copy>(
     }
 }
 
-fn menu_setup(mut commands: Commands, asset_server: Res<AssetServer>, mut menu_state: ResMut<NextState<MenuState>>) {
+fn menu_setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut menu_state: ResMut<NextState<MenuState>>,
+) {
     menu_state.set(MenuState::Main);
 
     let bgm_handle: Handle<AudioSource> = asset_server.load("sounds/vamita-2.mp3");
@@ -125,7 +132,11 @@ fn menu_setup(mut commands: Commands, asset_server: Res<AssetServer>, mut menu_s
     ));
 }
 
-fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn main_menu_setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    difficulty: Res<Difficulty>,
+) {
     // Common style for all buttons on the screen
     let button_node = Node {
         width: px(300),
@@ -147,10 +158,24 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         font_size: 33.0,
         ..default()
     };
+    let difficulty_button_node = Node {
+        width: px(130),
+        height: px(50),
+        margin: UiRect::axes(px(0), px(0)),
+        justify_content: JustifyContent::Center,
+        align_items: AlignItems::Center,
+        ..default()
+    };
+    let difficulty_text_font = TextFont {
+        font_size: 26.0,
+        ..default()
+    };
 
     let right_icon = asset_server.load("textures/Game Icons/right.png");
     let wrench_icon = asset_server.load("textures/Game Icons/wrench.png");
     let exit_icon = asset_server.load("textures/Game Icons/exitRight.png");
+
+    let difficulty = *difficulty;
 
     commands.spawn((
         DespawnOnExit(MenuState::Main),
@@ -182,6 +207,37 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         margin: UiRect::all(px(50)),
                         ..default()
                     },
+                ),
+                (
+                    Node {
+                        flex_direction: FlexDirection::Row,
+                        align_items: AlignItems::Center,
+                        margin: UiRect::axes(px(24), px(12)),
+                        ..default()
+                    },
+                    Children::spawn((
+                        Spawn((Node { ..default() },)),
+                        SpawnWith(move |parent: &mut ChildSpawner| {
+                            for difficulty_choice in
+                                [Difficulty::Easy, Difficulty::Normal, Difficulty::Hard]
+                            {
+                                let mut entity = parent.spawn((
+                                    Button,
+                                    difficulty_button_node.clone(),
+                                    BackgroundColor(NORMAL_BUTTON),
+                                    difficulty_choice,
+                                    children![(
+                                        Text::new(format!("{:?}", difficulty_choice)),
+                                        difficulty_text_font.clone(),
+                                        TextColor(TEXT_COLOR),
+                                    )],
+                                ));
+                                if difficulty == difficulty_choice {
+                                    entity.insert(SelectedOption);
+                                }
+                            }
+                        }),
+                    )),
                 ),
                 // Display three buttons for each action available from the main menu:
                 // - new game
