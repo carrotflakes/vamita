@@ -4,12 +4,13 @@ use std::f32::consts::TAU;
 use bevy::prelude::*;
 use rand::Rng;
 
-use super::components::{Enemy, EnemyAttributes, ExperienceOrb, Lifetime, Particle, Player, Projectile, Velocity};
+use super::components::{
+    Enemy, EnemyAttributes, ExperienceOrb, Lifetime, Particle, Player, Projectile, Velocity,
+};
 use super::constants::{
     ARENA_HALF_SIZE, ENEMY_DEATH_PARTICLE_LIFETIME, ENEMY_DEATH_PARTICLE_SIZE,
-    ENEMY_DEATH_PARTICLE_SPEED, ENEMY_DEATH_PARTICLES, PLAYER_SIZE, PROJECTILE_SIZE,
-    PROJECTILE_SPEED, EXPERIENCE_ORB_INITIAL_SPEED_MAX, EXPERIENCE_ORB_INITIAL_SPEED_MIN,
-    EXPERIENCE_ORB_SIZE,
+    ENEMY_DEATH_PARTICLE_SPEED, ENEMY_DEATH_PARTICLES, EXPERIENCE_ORB_INITIAL_SPEED_MAX,
+    EXPERIENCE_ORB_INITIAL_SPEED_MIN, EXPERIENCE_ORB_SIZE, PROJECTILE_SPEED,
 };
 use super::events::{EnemyKilled, PlayerHit};
 use super::resources::{
@@ -105,10 +106,11 @@ pub fn player_auto_fire(
             DespawnOnExit(MainState::Game),
             Sprite {
                 color: Color::srgba(1.0, 1.0, 0.0, 0.8),
-                custom_size: Some(PROJECTILE_SIZE),
+                custom_size: Some(Vec2::new(12.0, 6.0)),
                 ..default()
             },
-            Transform::from_translation(transform.translation + Vec3::new(0.0, 0.0, 1.0)),
+            Transform::from_translation(transform.translation + Vec3::new(0.0, 0.0, 1.0))
+                .with_rotation(Quat::from_rotation_z(dir.y.atan2(dir.x))),
             Projectile,
             Velocity(dir * PROJECTILE_SPEED),
             Lifetime {
@@ -165,12 +167,7 @@ pub fn handle_collisions(
             if projectiles_to_despawn.contains(projectile_entity) {
                 continue;
             }
-            if collide(
-                *enemy_pos,
-                attributes.size,
-                *projectile_pos,
-                PROJECTILE_SIZE,
-            ) {
+            if collide(*enemy_pos, *projectile_pos, 12.0) {
                 enemies_to_despawn.insert(*enemy_entity);
                 projectiles_to_despawn.insert(*projectile_entity);
                 score.0 += attributes.score_value;
@@ -189,12 +186,7 @@ pub fn handle_collisions(
             continue;
         }
 
-        if collide(
-            *enemy_pos,
-            attributes.size,
-            player_transform.translation.xy(),
-            PLAYER_SIZE,
-        ) {
+        if collide(*enemy_pos, player_transform.translation.xy(), 12.0) {
             enemies_to_despawn.insert(*enemy_entity);
             spawn_enemy_death_particles(&mut commands, *enemy_pos, attributes.color);
             if player_stats.health > 0 {
@@ -250,7 +242,8 @@ fn spawn_enemy_death_particles(commands: &mut Commands, position: Vec2, color: C
 fn spawn_experience_orb(commands: &mut Commands, position: Vec2, value: u32) {
     let mut rng = rand::rng();
     let angle = rng.random_range(0.0f32..TAU);
-    let speed = rng.random_range(EXPERIENCE_ORB_INITIAL_SPEED_MIN..EXPERIENCE_ORB_INITIAL_SPEED_MAX);
+    let speed =
+        rng.random_range(EXPERIENCE_ORB_INITIAL_SPEED_MIN..EXPERIENCE_ORB_INITIAL_SPEED_MAX);
     let velocity = Vec2::new(angle.cos(), angle.sin()) * speed;
     commands.spawn((
         DespawnOnExit(MainState::Game),
@@ -268,8 +261,6 @@ fn spawn_experience_orb(commands: &mut Commands, position: Vec2, value: u32) {
     ));
 }
 
-fn collide(a_pos: Vec2, a_size: Vec2, b_pos: Vec2, b_size: Vec2) -> bool {
-    let collision_x = (a_pos.x - b_pos.x).abs() < (a_size.x + b_size.x) * 0.5;
-    let collision_y = (a_pos.y - b_pos.y).abs() < (a_size.y + b_size.y) * 0.5;
-    collision_x && collision_y
+fn collide(a_pos: Vec2, b_pos: Vec2, dist: f32) -> bool {
+    a_pos.distance(b_pos) < dist
 }

@@ -51,6 +51,7 @@ pub fn update_projectiles(
     let delta = time.delta_secs();
     for (mut transform, velocity) in &mut query {
         transform.translation += velocity.extend(0.0) * delta;
+        transform.rotation = Quat::from_rotation_z(velocity.y.atan2(velocity.x));
     }
 }
 
