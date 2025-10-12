@@ -1,7 +1,7 @@
 use bevy::input::ButtonInput;
 use bevy::prelude::*;
 
-use super::components::{Enemy, Player, Projectile, Velocity};
+use super::components::{Enemy, Player, Projectile, Velocity, ExperienceOrb};
 use super::constants::PLAYER_MAX_HEALTH;
 use super::resources::{EnemySpawnTimer, PauseState, PlayerStats, Score, ShootTimer};
 
@@ -21,6 +21,7 @@ pub fn pause_menu_actions(
     mut player_query: Query<(Entity, &mut Transform, &mut Velocity), With<Player>>,
     enemy_query: Query<Entity, With<Enemy>>,
     projectile_query: Query<Entity, With<Projectile>>,
+    exp_orb_query: Query<Entity, With<ExperienceOrb>>,
     asset_server: Res<AssetServer>,
     mut game_state: ResMut<NextState<MainState>>,
 ) {
@@ -46,6 +47,7 @@ pub fn pause_menu_actions(
             &mut player_query,
             &enemy_query,
             &projectile_query,
+            &exp_orb_query,
             &asset_server,
         );
         pause_state.paused = false;
@@ -68,11 +70,13 @@ fn reset_game(
     player_query: &mut Query<(Entity, &mut Transform, &mut Velocity), With<Player>>,
     enemy_query: &Query<Entity, With<Enemy>>,
     projectile_query: &Query<Entity, With<Projectile>>,
+    exp_orb_query: &Query<Entity, With<ExperienceOrb>>,
     asset_server: &Res<AssetServer>,
 ) {
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     score.0 = 0;
     player_stats.health = PLAYER_MAX_HEALTH;
+    player_stats.experience = 0;
     enemy_spawn.0.reset();
     shoot_timer.0.reset();
 
@@ -80,6 +84,9 @@ fn reset_game(
         commands.entity(entity).despawn();
     }
     for entity in projectile_query.iter() {
+        commands.entity(entity).despawn();
+    }
+    for entity in exp_orb_query.iter() {
         commands.entity(entity).despawn();
     }
 

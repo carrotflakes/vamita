@@ -23,8 +23,15 @@ pub struct EnemyAttributes {
     pub speed: f32,
     pub damage: i32,
     pub score_value: u32,
+    pub xp_value: u32,
     pub color: Color,
 }
 
 #[derive(Component)]
 pub struct Particle;
+
+#[derive(Component)]
+pub struct ExperienceOrb {
+    pub value: u32,
+    pub magnetized: bool,
+}

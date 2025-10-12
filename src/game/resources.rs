@@ -16,6 +16,7 @@ pub struct Score(pub u32);
 #[derive(Resource)]
 pub struct PlayerStats {
     pub health: i32,
+    pub experience: u32,
 }
 
 #[derive(Resource, Default)]
@@ -31,6 +32,9 @@ pub struct HitSelfSound(pub Handle<AudioSource>);
 
 #[derive(Resource, Clone)]
 pub struct ShootSound(pub Handle<AudioSource>);
+
+#[derive(Resource, Clone)]
+pub struct ExperienceOrbSound(pub Handle<AudioSource>);
 
 #[derive(Copy, Clone)]
 pub struct EnemyPrototype {
@@ -53,6 +57,7 @@ impl EnemyCatalog {
                     speed: 120.0,
                     damage: 1,
                     score_value: 1,
+                    xp_value: 1,
                     color: Color::srgb(0.9, 0.3, 0.3),
                 },
                 weight: 1.0,
@@ -63,6 +68,7 @@ impl EnemyCatalog {
                     speed: 210.0,
                     damage: 1,
                     score_value: 2,
+                    xp_value: 2,
                     color: Color::srgb(0.95, 0.6, 0.2),
                 },
                 weight: 0.6,
@@ -73,6 +79,7 @@ impl EnemyCatalog {
                     speed: 80.0,
                     damage: 2,
                     score_value: 3,
+                    xp_value: 3,
                     color: Color::srgb(0.6, 0.1, 0.1),
                 },
                 weight: 0.3,

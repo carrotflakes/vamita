@@ -4,11 +4,12 @@ use std::f32::consts::TAU;
 use bevy::prelude::*;
 use rand::Rng;
 
-use super::components::{Enemy, EnemyAttributes, Lifetime, Particle, Player, Projectile, Velocity};
+use super::components::{Enemy, EnemyAttributes, ExperienceOrb, Lifetime, Particle, Player, Projectile, Velocity};
 use super::constants::{
     ARENA_HALF_SIZE, ENEMY_DEATH_PARTICLE_LIFETIME, ENEMY_DEATH_PARTICLE_SIZE,
     ENEMY_DEATH_PARTICLE_SPEED, ENEMY_DEATH_PARTICLES, PLAYER_SIZE, PROJECTILE_SIZE,
-    PROJECTILE_SPEED,
+    PROJECTILE_SPEED, EXPERIENCE_ORB_INITIAL_SPEED_MAX, EXPERIENCE_ORB_INITIAL_SPEED_MIN,
+    EXPERIENCE_ORB_SIZE,
 };
 use super::events::{EnemyKilled, PlayerHit};
 use super::resources::{
@@ -176,6 +177,7 @@ pub fn handle_collisions(
                 enemy_killed_messages.write(EnemyKilled);
                 commands.spawn((AudioPlayer(hit_sound.0.clone()), PlaybackSettings::DESPAWN));
                 spawn_enemy_death_particles(&mut commands, *enemy_pos, attributes.color);
+                spawn_experience_orb(&mut commands, *enemy_pos, attributes.xp_value);
                 break;
             }
         }
@@ -243,6 +245,27 @@ fn spawn_enemy_death_particles(commands: &mut Commands, position: Vec2, color: C
             })
             .collect::<Vec<_>>(),
     );
+}
+
+fn spawn_experience_orb(commands: &mut Commands, position: Vec2, value: u32) {
+    let mut rng = rand::rng();
+    let angle = rng.random_range(0.0f32..TAU);
+    let speed = rng.random_range(EXPERIENCE_ORB_INITIAL_SPEED_MIN..EXPERIENCE_ORB_INITIAL_SPEED_MAX);
+    let velocity = Vec2::new(angle.cos(), angle.sin()) * speed;
+    commands.spawn((
+        DespawnOnExit(MainState::Game),
+        Sprite {
+            color: Color::srgba(0.3, 0.9, 0.5, 0.95),
+            custom_size: Some(EXPERIENCE_ORB_SIZE),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(position.x, position.y, 0.8)),
+        ExperienceOrb {
+            value,
+            magnetized: false,
+        },
+        Velocity(velocity),
+    ));
 }
 
 fn collide(a_pos: Vec2, a_size: Vec2, b_pos: Vec2, b_size: Vec2) -> bool {

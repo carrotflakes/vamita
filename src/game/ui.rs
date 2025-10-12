@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::MainState;
-use super::resources::Score;
+use super::resources::{PlayerStats, Score};
 
 #[derive(Component)]
 pub struct ScoreText;
@@ -71,8 +71,9 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 pub fn update_score_text(
     score: Res<Score>,
+    player_stats: Res<PlayerStats>,
     score_root: Single<Entity, (With<ScoreboardUi>, With<Text2d>)>,
     mut writer: TextUiWriter,
 ) {
-    *writer.text(*score_root, 1) = score.0.to_string();
+    *writer.text(*score_root, 1) = format!("{}\nXP: {}", score.0, player_stats.experience);
 }

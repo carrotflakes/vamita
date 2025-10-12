@@ -2,6 +2,7 @@ mod combat;
 mod components;
 mod constants;
 mod events;
+mod experience;
 mod input;
 mod movement;
 mod resources;
@@ -13,13 +14,14 @@ use combat::{handle_collisions, player_auto_fire, spawn_enemies};
 use components::{Player, Velocity};
 use constants::{ENEMY_SPAWN_INTERVAL, FIRE_RATE, PLAYER_MAX_HEALTH, PLAYER_SIZE};
 use events::{EnemyKilled, PlayerHit};
+use experience::experience_orb_behavior;
 use input::{pause_input, player_input};
 use movement::{
     constrain_to_arena, decay_lifetimes, enemy_seek_player, update_projectiles, update_velocity,
 };
 use resources::{
-    EnemyCatalog, EnemySpawnTimer, HitSelfSound, HitSound, PauseState, PlayerStats, Score,
-    ShootSound, ShootTimer,
+    EnemyCatalog, EnemySpawnTimer, ExperienceOrbSound, HitSelfSound, HitSound, PauseState,
+    PlayerStats, Score, ShootSound, ShootTimer,
 };
 use state::pause_menu_actions;
 
@@ -45,6 +47,7 @@ pub fn plugin(app: &mut App) {
         .add_systems(
             FixedUpdate,
             (
+                experience_orb_behavior,
                 update_velocity,
                 enemy_seek_player,
                 update_projectiles,
@@ -67,10 +70,12 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let hit_sound_handle = asset_server.load("sounds/hit.wav");
     let hit_self_sound_handle = asset_server.load("sounds/hit_self.wav");
     let shoot_sound_handle = asset_server.load("sounds/shoot.wav");
+    let exp_sound_handle = asset_server.load("sounds/exp.wav");
 
     commands.insert_resource(HitSound(hit_sound_handle));
     commands.insert_resource(HitSelfSound(hit_self_sound_handle));
     commands.insert_resource(ShootSound(shoot_sound_handle));
+    commands.insert_resource(ExperienceOrbSound(exp_sound_handle));
 
     commands.insert_resource(EnemySpawnTimer(Timer::from_seconds(
         ENEMY_SPAWN_INTERVAL,
@@ -82,6 +87,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     )));
     commands.insert_resource(PlayerStats {
         health: PLAYER_MAX_HEALTH,
+        experience: 0,
     });
     commands.insert_resource(Score::default());
     commands.insert_resource(PauseState::default());
