@@ -1,13 +1,37 @@
 use bevy::input::ButtonInput;
 use bevy::prelude::*;
 
-use super::components::{Enemy, ExperienceOrb, Player, Projectile, Velocity};
+use super::components::{Enemy, ExperienceOrb, Projectile, Velocity};
 use super::constants::PLAYER_MAX_HEALTH;
-use super::resources::{EnemySpawnTimer, PauseState, PlayerStats, Score, ShootTimer};
+use super::ui::Score;
 
-use crate::game::spawn_player;
+use crate::game::combat::EnemySpawnTimer;
+use crate::game::player::{Player, PlayerStats, ShootTimer, spawn_player};
 use crate::game::ui::PauseOverlay;
 use crate::{Difficulty, MainState};
+
+#[derive(Resource, Default)]
+pub struct PauseState {
+    pub paused: bool,
+}
+
+pub fn pause_input(
+    kb: Res<ButtonInput<KeyCode>>,
+    mut pause_state: ResMut<PauseState>,
+    mut overlay: Query<&mut Visibility, With<PauseOverlay>>,
+) {
+    if kb.just_pressed(KeyCode::Escape) {
+        pause_state.paused = !pause_state.paused;
+
+        if let Some(mut visibility) = overlay.iter_mut().next() {
+            *visibility = if pause_state.paused {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            };
+        }
+    }
+}
 
 pub fn pause_menu_actions(
     kb: Res<ButtonInput<KeyCode>>,

@@ -1,8 +1,9 @@
 use bevy::prelude::*;
 
-use super::components::{Enemy, EnemyAttributes, Lifetime, Player, Projectile, Velocity};
-use super::constants::ARENA_HALF_SIZE;
-use super::resources::PauseState;
+use crate::game::player::Player;
+
+use super::components::{Enemy, EnemyAttributes, Lifetime, Projectile, Velocity};
+use super::pause::PauseState;
 
 pub fn update_velocity(
     time: Res<Time>,
@@ -70,25 +71,5 @@ pub fn decay_lifetimes(
         if lifetime.timer.is_finished() {
             commands.entity(entity).despawn();
         }
-    }
-}
-
-pub fn constrain_to_arena(
-    mut query: Query<&mut Transform, With<Player>>,
-    pause_state: Res<PauseState>,
-) {
-    if pause_state.paused {
-        return;
-    }
-
-    for mut transform in &mut query {
-        transform.translation.x = transform
-            .translation
-            .x
-            .clamp(-ARENA_HALF_SIZE, ARENA_HALF_SIZE);
-        transform.translation.y = transform
-            .translation
-            .y
-            .clamp(-ARENA_HALF_SIZE, ARENA_HALF_SIZE);
     }
 }

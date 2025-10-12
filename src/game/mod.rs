@@ -1,31 +1,33 @@
 mod combat;
 mod components;
 mod constants;
+mod enemy;
 mod events;
 mod experience;
-mod input;
 mod movement;
+mod pause;
+mod player;
 mod resources;
-mod state;
 mod ui;
 
 use bevy::prelude::*;
-use combat::{handle_collisions, player_auto_fire, spawn_enemies};
-use components::{Player, Velocity};
-use constants::{ENEMY_SPAWN_INTERVAL, FIRE_RATE, PLAYER_MAX_HEALTH, PLAYER_SIZE};
+use combat::handle_collisions;
+use constants::{ENEMY_SPAWN_INTERVAL, FIRE_RATE, PLAYER_MAX_HEALTH};
 use events::{EnemyKilled, PlayerHit};
 use experience::experience_orb_behavior;
-use input::{pause_input, player_input};
-use movement::{
-    constrain_to_arena, decay_lifetimes, enemy_seek_player, update_projectiles, update_velocity,
-};
-use resources::{
-    EnemyCatalog, EnemySpawnTimer, ExperienceOrbSound, HitSelfSound, HitSound, PauseState,
-    PlayerStats, Score, ShootSound, ShootTimer,
-};
-use state::pause_menu_actions;
+use movement::{decay_lifetimes, enemy_seek_player, update_projectiles, update_velocity};
+use pause::{PauseState, pause_menu_actions};
+use player::player_input;
+use resources::{ExperienceOrbSound, HitSelfSound, HitSound, ShootSound};
 
-use crate::{BGM, Difficulty, MainState, game::ui::HealthText};
+use crate::{
+    BGM, Difficulty, MainState,
+    game::{
+        combat::EnemySpawnTimer,
+        enemy::EnemyCatalog,
+        player::{PlayerStats, ShootTimer},
+    },
+};
 
 pub fn plugin(app: &mut App) {
     app.add_systems(OnEnter(MainState::Game), (setup, ui::setup))
@@ -35,11 +37,11 @@ pub fn plugin(app: &mut App) {
         .add_systems(
             Update,
             (
-                pause_input,
+                pause::pause_input,
                 player_input,
                 pause_menu_actions,
                 ui::update_score_text,
-                update_health_text,
+                player::update_health_text,
             )
                 .chain()
                 .run_if(in_state(MainState::Game)),
@@ -51,10 +53,10 @@ pub fn plugin(app: &mut App) {
                 update_velocity,
                 enemy_seek_player,
                 update_projectiles,
-                constrain_to_arena,
+                player::constrain_to_arena,
                 handle_collisions,
-                spawn_enemies,
-                player_auto_fire,
+                enemy::spawn_enemies,
+                player::player_auto_fire,
                 decay_lifetimes,
             )
                 .chain()
@@ -89,7 +91,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, difficulty: Res
         health: difficulty.player_max_health(PLAYER_MAX_HEALTH),
         experience: 0,
     });
-    commands.insert_resource(Score::default());
+    commands.insert_resource(ui::Score::default());
     commands.insert_resource(PauseState::default());
 
     commands.spawn((
@@ -113,35 +115,5 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, difficulty: Res
         PlaybackSettings::LOOP,
     ));
 
-    spawn_player(&mut commands, &font_handle);
-}
-
-fn spawn_player(commands: &mut Commands, handle_font: &Handle<Font>) {
-    commands.spawn((
-        DespawnOnExit(MainState::Game),
-        Sprite::from_color(Color::srgb(0.2, 0.8, 1.0), PLAYER_SIZE),
-        Transform::default(),
-        Player,
-        Velocity(Vec2::ZERO),
-        children!((
-            Text2d("HP: ".to_string()),
-            TextFont {
-                font: handle_font.clone(),
-                font_size: 14.0,
-                ..default()
-            },
-            TextColor(Color::WHITE),
-            Transform::from_translation(Vec3::new(0.0, 28.0, 1.0)),
-            HealthText,
-            children!(TextSpan::default())
-        )),
-    ));
-}
-
-fn update_health_text(
-    player_stats: Res<PlayerStats>,
-    health_root: Single<Entity, (With<HealthText>, With<Text2d>)>,
-    mut writer: TextUiWriter,
-) {
-    *writer.text(*health_root, 1) = player_stats.health.to_string();
+    player::spawn_player(&mut commands, &font_handle);
 }

@@ -5,124 +5,22 @@ use bevy::prelude::*;
 use rand::Rng;
 
 use super::components::{
-    Enemy, EnemyAttributes, ExperienceOrb, Lifetime, Particle, Player, Projectile, Velocity,
+    Enemy, EnemyAttributes, ExperienceOrb, Lifetime, Particle, Projectile, Velocity,
 };
 use super::constants::{
-    ARENA_HALF_SIZE, ENEMY_DEATH_PARTICLE_LIFETIME, ENEMY_DEATH_PARTICLE_SIZE,
-    ENEMY_DEATH_PARTICLE_SPEED, ENEMY_DEATH_PARTICLES, EXPERIENCE_ORB_INITIAL_SPEED_MAX,
-    EXPERIENCE_ORB_INITIAL_SPEED_MIN, EXPERIENCE_ORB_SIZE, PROJECTILE_SPEED,
+    ENEMY_DEATH_PARTICLE_LIFETIME, ENEMY_DEATH_PARTICLE_SIZE, ENEMY_DEATH_PARTICLE_SPEED,
+    ENEMY_DEATH_PARTICLES, EXPERIENCE_ORB_INITIAL_SPEED_MAX, EXPERIENCE_ORB_INITIAL_SPEED_MIN,
+    EXPERIENCE_ORB_SIZE,
 };
 use super::events::{EnemyKilled, PlayerHit};
-use super::resources::{
-    EnemyCatalog, EnemySpawnTimer, HitSelfSound, HitSound, PauseState, PlayerStats, Score,
-    ShootSound, ShootTimer,
-};
+use super::pause::PauseState;
+use super::resources::{HitSelfSound, HitSound};
 use crate::MainState;
+use crate::game::player::{Player, PlayerStats};
+use crate::game::ui::Score;
 
-pub fn spawn_enemies(
-    mut commands: Commands,
-    time: Res<Time>,
-    mut timer: ResMut<EnemySpawnTimer>,
-    enemy_catalog: Res<EnemyCatalog>,
-    player_query: Query<&Transform, With<Player>>,
-    pause_state: Res<PauseState>,
-) {
-    if pause_state.paused {
-        return;
-    }
-
-    if timer.0.tick(time.delta()).just_finished() {
-        let Ok(player_transform) = player_query.single() else {
-            return;
-        };
-
-        let mut rng = rand::rng();
-        let prototype = enemy_catalog.random_prototype(&mut rng);
-        let attributes = prototype.attributes;
-        let spawn_side = rng.random_range(0..4);
-        let offset = rng.random_range(-ARENA_HALF_SIZE..=ARENA_HALF_SIZE);
-        let (x, y) = match spawn_side {
-            0 => (-ARENA_HALF_SIZE - 40.0, offset),
-            1 => (ARENA_HALF_SIZE + 40.0, offset),
-            2 => (offset, -ARENA_HALF_SIZE - 40.0),
-            _ => (offset, ARENA_HALF_SIZE + 40.0),
-        };
-
-        let target = player_transform.translation.xy();
-        let dir = (target - Vec2::new(x, y)).normalize_or_zero();
-
-        commands.spawn((
-            DespawnOnExit(MainState::Game),
-            Sprite {
-                color: attributes.color,
-                custom_size: Some(attributes.size),
-                ..default()
-            },
-            Transform::from_translation(Vec3::new(x, y, 0.0)),
-            Enemy,
-            attributes,
-            Velocity(dir * attributes.speed),
-        ));
-    }
-}
-
-pub fn player_auto_fire(
-    mut commands: Commands,
-    time: Res<Time>,
-    mut timer: ResMut<ShootTimer>,
-    player_query: Query<&Transform, With<Player>>,
-    enemies: Query<&Transform, With<Enemy>>,
-    shoot_sound: Res<ShootSound>,
-    pause_state: Res<PauseState>,
-) {
-    if pause_state.paused {
-        return;
-    }
-
-    if timer.0.tick(time.delta()).just_finished() {
-        let Ok(transform) = player_query.single() else {
-            return;
-        };
-
-        let origin = transform.translation.xy();
-        let dir = enemies
-            .iter()
-            .map(|enemy_transform| enemy_transform.translation.xy())
-            .min_by(|a, b| {
-                origin
-                    .distance_squared(*a)
-                    .partial_cmp(&origin.distance_squared(*b))
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            })
-            .map(|target| (target - origin).normalize_or_zero())
-            .filter(|dir| dir.length_squared() > 0.0)
-            .unwrap_or_else(|| {
-                let mut rng = rand::rng();
-                let angle = rng.random_range(0.0..TAU);
-                Vec2::new(angle.cos(), angle.sin())
-            });
-
-        commands.spawn((
-            DespawnOnExit(MainState::Game),
-            Sprite {
-                color: Color::srgba(1.0, 1.0, 0.0, 0.8),
-                custom_size: Some(Vec2::new(12.0, 6.0)),
-                ..default()
-            },
-            Transform::from_translation(transform.translation + Vec3::new(0.0, 0.0, 1.0))
-                .with_rotation(Quat::from_rotation_z(dir.y.atan2(dir.x))),
-            Projectile,
-            Velocity(dir * PROJECTILE_SPEED),
-            Lifetime {
-                timer: Timer::from_seconds(1.2, TimerMode::Once),
-            },
-        ));
-        commands.spawn((
-            AudioPlayer(shoot_sound.0.clone()),
-            PlaybackSettings::DESPAWN,
-        ));
-    }
-}
+#[derive(Resource)]
+pub struct EnemySpawnTimer(pub Timer);
 
 pub fn handle_collisions(
     mut commands: Commands,

@@ -1,12 +1,14 @@
 use bevy::prelude::*;
 
-use super::components::{ExperienceOrb, Player, Velocity};
+use super::components::{ExperienceOrb, Velocity};
 use super::constants::{
     EXPERIENCE_ORB_IDLE_DAMPING, EXPERIENCE_ORB_MAGNET_ACCEL, EXPERIENCE_ORB_MAGNET_BASE_SPEED,
     EXPERIENCE_ORB_MAGNET_MAX_SPEED, EXPERIENCE_ORB_MAGNET_RADIUS, EXPERIENCE_ORB_SIZE,
     PLAYER_SIZE,
 };
-use super::resources::{ExperienceOrbSound, PauseState, PlayerStats};
+use super::pause::PauseState;
+use super::resources::ExperienceOrbSound;
+use crate::game::player::{Player, PlayerStats};
 
 pub fn experience_orb_behavior(
     mut commands: Commands,

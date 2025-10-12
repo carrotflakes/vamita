@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 
-use crate::MainState;
-use super::resources::{PlayerStats, Score};
+use crate::{MainState, game::player::PlayerStats};
+
+#[derive(Resource, Default)]
+pub struct Score(pub u32);
 
 #[derive(Component)]
 pub struct ScoreText;
