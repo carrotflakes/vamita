@@ -16,7 +16,7 @@ use constants::{BOMB_INTERVAL, ENEMY_SPAWN_INTERVAL, FIRE_RATE, PLAYER_MAX_HEALT
 use events::{EnemyKilled, PlayerHit};
 use experience::experience_orb_behavior;
 use movement::{decay_lifetimes, enemy_seek_player, update_projectiles, update_velocity};
-use pause::{PauseState, pause_menu_actions};
+use pause::pause_menu_actions;
 use player::player_input;
 use resources::{BombSound, DefeatSound, ExperienceOrbSound, HitSelfSound, HitSound, ShootSound};
 
@@ -32,22 +32,33 @@ use crate::{
     },
 };
 
+#[derive(States, Default, Clone, Copy, Eq, PartialEq, Debug, Hash)]
+pub enum GameState {
+    #[default]
+    Playing,
+    Paused,
+}
+
 pub fn plugin(app: &mut App) {
-    app.add_systems(OnEnter(MainState::Game), (setup, ui::setup))
+    app.init_state::<GameState>()
+        .add_systems(OnEnter(MainState::Game), (setup, ui::setup))
         .insert_resource(EnemyCatalog::new())
         .add_message::<PlayerHit>()
         .add_message::<EnemyKilled>()
+        .add_systems(Update, pause::pause_input.run_if(in_state(MainState::Game)))
         .add_systems(
             Update,
             (
-                pause::pause_input,
                 player_input,
-                pause_menu_actions,
                 ui::update_score_text,
                 player::update_health_text,
             )
                 .chain()
-                .run_if(in_state(MainState::Game)),
+                .run_if(in_state(MainState::Game).and(in_state(GameState::Playing))),
+        )
+        .add_systems(
+            Update,
+            pause_menu_actions.run_if(in_state(MainState::Game).and(in_state(GameState::Paused))),
         )
         .add_systems(
             FixedUpdate,
@@ -65,7 +76,7 @@ pub fn plugin(app: &mut App) {
                 decay_lifetimes,
             )
                 .chain()
-                .run_if(in_state(MainState::Game)),
+                .run_if(in_state(MainState::Game).and(in_state(GameState::Playing))),
         );
 }
 
@@ -134,7 +145,6 @@ pub fn reset_game(
         experience: 0,
     });
     commands.insert_resource(Score::default());
-    commands.insert_resource(PauseState::default());
 
     if let Some(level_entity_query) = level_entity_query {
         for entity in level_entity_query.iter() {
@@ -144,4 +154,6 @@ pub fn reset_game(
 
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     spawn_player(commands, &font);
+
+    commands.set_state(GameState::Playing);
 }

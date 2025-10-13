@@ -5,7 +5,6 @@ use super::components::{Bomb, BombExplosion, Lifetime, Velocity};
 use super::constants::{
     BOMB_EXPLOSION_DURATION, BOMB_EXPLOSION_RADIUS, BOMB_FUSE, PROJECTILE_SPEED,
 };
-use super::pause::PauseState;
 use super::resources::{BombSound, ShootSound};
 use crate::MainState;
 use crate::audio::{SEVolume, spawn_se};
@@ -31,15 +30,7 @@ pub struct ShootTimer(pub Timer);
 #[derive(Resource)]
 pub struct BombTimer(pub Timer);
 
-pub fn player_input(
-    mut query: Query<&mut Velocity, With<Player>>,
-    kb: Res<ButtonInput<KeyCode>>,
-    pause_state: Res<PauseState>,
-) {
-    if pause_state.paused {
-        return;
-    }
-
+pub fn player_input(mut query: Query<&mut Velocity, With<Player>>, kb: Res<ButtonInput<KeyCode>>) {
     if let Ok(mut velocity) = query.single_mut() {
         let mut dir = Vec2::ZERO;
         if kb.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) {
@@ -67,12 +58,7 @@ pub fn player_auto_fire(
     enemies: Query<&Transform, With<Enemy>>,
     shoot_sound: Res<ShootSound>,
     se_volume: Res<SEVolume>,
-    pause_state: Res<PauseState>,
 ) {
-    if pause_state.paused {
-        return;
-    }
-
     if timer.0.tick(time.delta()).just_finished() {
         let Ok(transform) = player_query.single() else {
             return;
@@ -121,12 +107,7 @@ pub fn player_place_bomb(
     time: Res<Time>,
     mut timer: ResMut<BombTimer>,
     player_query: Query<&Transform, With<Player>>,
-    pause_state: Res<PauseState>,
 ) {
-    if pause_state.paused {
-        return;
-    }
-
     if timer.0.tick(time.delta()).just_finished() {
         let Ok(transform) = player_query.single() else {
             return;
@@ -152,16 +133,11 @@ pub fn update_bombs(
     mut commands: Commands,
     time: Res<Time>,
     mut bombs: Query<(Entity, &Transform, &mut Sprite, &mut Bomb)>,
-    pause_state: Res<PauseState>,
     bomb_sound: Res<BombSound>,
     se_volume: Res<SEVolume>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    if pause_state.paused {
-        return;
-    }
-
     for (entity, transform, mut sprite, mut bomb) in &mut bombs {
         if bomb.blink_timer.tick(time.delta()).just_finished() {
             bomb.visible = !bomb.visible;
@@ -191,14 +167,7 @@ pub fn update_bombs(
     }
 }
 
-pub fn constrain_to_arena(
-    mut query: Query<&mut Transform, With<Player>>,
-    pause_state: Res<PauseState>,
-) {
-    if pause_state.paused {
-        return;
-    }
-
+pub fn constrain_to_arena(mut query: Query<&mut Transform, With<Player>>) {
     for mut transform in &mut query {
         transform.translation.x = transform
             .translation

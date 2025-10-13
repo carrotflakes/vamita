@@ -6,9 +6,8 @@ use super::constants::{
     EXPERIENCE_ORB_MAGNET_MAX_SPEED, EXPERIENCE_ORB_MAGNET_RADIUS, EXPERIENCE_ORB_SIZE,
     PLAYER_SIZE,
 };
-use super::pause::PauseState;
 use super::resources::ExperienceOrbSound;
-use crate::audio::{spawn_se, SEVolume};
+use crate::audio::{SEVolume, spawn_se};
 use crate::game::player::{Player, PlayerStats};
 
 pub fn experience_orb_behavior(
@@ -17,14 +16,9 @@ pub fn experience_orb_behavior(
     mut orbs: Query<(Entity, &mut ExperienceOrb, &mut Velocity, &Transform)>,
     mut player_stats: ResMut<PlayerStats>,
     player_query: Query<&Transform, With<Player>>,
-    pause_state: Res<PauseState>,
     exp_sound: Res<ExperienceOrbSound>,
     se_volume: Res<SEVolume>,
 ) {
-    if pause_state.paused {
-        return;
-    }
-
     let Ok(player_transform) = player_query.single() else {
         return;
     };

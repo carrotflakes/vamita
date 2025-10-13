@@ -2,25 +2,26 @@ use bevy::input::ButtonInput;
 use bevy::prelude::*;
 
 use crate::game::components::LevelEntity;
-use crate::game::reset_game;
 use crate::game::ui::PauseOverlay;
+use crate::game::{GameState, reset_game};
 use crate::{Difficulty, MainState};
-
-#[derive(Resource, Default)]
-pub struct PauseState {
-    pub paused: bool,
-}
 
 pub fn pause_input(
     kb: Res<ButtonInput<KeyCode>>,
-    mut pause_state: ResMut<PauseState>,
+    game_state: Res<State<GameState>>,
+    mut set_game_state: ResMut<NextState<GameState>>,
     mut overlay: Query<&mut Visibility, With<PauseOverlay>>,
 ) {
     if kb.just_pressed(KeyCode::Escape) {
-        pause_state.paused = !pause_state.paused;
+        let next_state = if *game_state == GameState::Playing {
+            GameState::Paused
+        } else {
+            GameState::Playing
+        };
+        set_game_state.set(next_state);
 
         if let Some(mut visibility) = overlay.iter_mut().next() {
-            *visibility = if pause_state.paused {
+            *visibility = if next_state == GameState::Paused {
                 Visibility::Visible
             } else {
                 Visibility::Hidden
@@ -31,20 +32,16 @@ pub fn pause_input(
 
 pub fn pause_menu_actions(
     kb: Res<ButtonInput<KeyCode>>,
-    mut pause_state: ResMut<PauseState>,
     mut overlay: Query<&mut Visibility, With<PauseOverlay>>,
     mut commands: Commands,
     level_entity_query: Query<Entity, With<LevelEntity>>,
     asset_server: Res<AssetServer>,
     difficulty: Res<Difficulty>,
-    mut game_state: ResMut<NextState<MainState>>,
+    mut main_state: ResMut<NextState<MainState>>,
+    mut game_state: ResMut<NextState<GameState>>,
 ) {
-    if !pause_state.paused {
-        return;
-    }
-
     if kb.just_pressed(KeyCode::Enter) || kb.just_pressed(KeyCode::KeyR) {
-        pause_state.paused = false;
+        game_state.set(GameState::Playing);
         if let Some(mut visibility) = overlay.iter_mut().next() {
             *visibility = Visibility::Hidden;
         }
@@ -58,13 +55,13 @@ pub fn pause_menu_actions(
             &asset_server,
             *difficulty,
         );
-        pause_state.paused = false;
+        game_state.set(GameState::Playing);
         if let Some(mut visibility) = overlay.iter_mut().next() {
             *visibility = Visibility::Hidden;
         }
     }
 
     if kb.just_pressed(KeyCode::KeyQ) {
-        game_state.set(MainState::Menu);
+        main_state.set(MainState::Menu);
     }
 }

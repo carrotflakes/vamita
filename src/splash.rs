@@ -37,11 +37,11 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn countdown(
-    mut game_state: ResMut<NextState<MainState>>,
+    mut main_state: ResMut<NextState<MainState>>,
     time: Res<Time>,
     mut timer: ResMut<SplashTimer>,
 ) {
     if timer.tick(time.delta()).is_finished() {
-        game_state.set(MainState::Menu);
+        main_state.set(MainState::Menu);
     }
 }

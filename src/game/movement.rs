@@ -3,17 +3,8 @@ use bevy::prelude::*;
 use crate::game::player::Player;
 
 use super::components::{Enemy, EnemyAttributes, Lifetime, Projectile, Velocity};
-use super::pause::PauseState;
 
-pub fn update_velocity(
-    time: Res<Time>,
-    mut query: Query<(&mut Transform, &Velocity)>,
-    pause_state: Res<PauseState>,
-) {
-    if pause_state.paused {
-        return;
-    }
-
+pub fn update_velocity(time: Res<Time>, mut query: Query<(&mut Transform, &Velocity)>) {
     let delta = time.delta_secs();
     for (mut transform, velocity) in &mut query {
         transform.translation += velocity.extend(0.0) * delta;
@@ -23,12 +14,7 @@ pub fn update_velocity(
 pub fn enemy_seek_player(
     mut enemies: Query<(&Transform, &mut Velocity, &EnemyAttributes), With<Enemy>>,
     player: Query<&Transform, (With<Player>, Without<Enemy>)>,
-    pause_state: Res<PauseState>,
 ) {
-    if pause_state.paused {
-        return;
-    }
-
     let Ok(player_transform) = player.single() else {
         return;
     };
@@ -43,12 +29,7 @@ pub fn enemy_seek_player(
 pub fn update_projectiles(
     time: Res<Time>,
     mut query: Query<(&mut Transform, &Velocity), With<Projectile>>,
-    pause_state: Res<PauseState>,
 ) {
-    if pause_state.paused {
-        return;
-    }
-
     let delta = time.delta_secs();
     for (mut transform, velocity) in &mut query {
         transform.translation += velocity.extend(0.0) * delta;
@@ -60,12 +41,7 @@ pub fn decay_lifetimes(
     time: Res<Time>,
     mut commands: Commands,
     mut query: Query<(Entity, &mut Lifetime)>,
-    pause_state: Res<PauseState>,
 ) {
-    if pause_state.paused {
-        return;
-    }
-
     for (entity, mut lifetime) in &mut query {
         lifetime.timer.tick(time.delta());
         if lifetime.timer.is_finished() {

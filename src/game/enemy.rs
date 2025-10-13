@@ -8,7 +8,6 @@ use crate::game::combat::EnemySpawnTimer;
 use crate::game::components::Enemy;
 use crate::game::components::Velocity;
 use crate::game::constants::ARENA_HALF_SIZE;
-use crate::game::pause::PauseState;
 use crate::game::player::Player;
 
 use super::components::EnemyAttributes;
@@ -93,12 +92,7 @@ pub fn spawn_enemies(
     mut timer: ResMut<EnemySpawnTimer>,
     enemy_catalog: Res<EnemyCatalog>,
     player_query: Query<&Transform, With<Player>>,
-    pause_state: Res<PauseState>,
 ) {
-    if pause_state.paused {
-        return;
-    }
-
     if timer.0.tick(time.delta()).just_finished() {
         let Ok(player_transform) = player_query.single() else {
             return;

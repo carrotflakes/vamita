@@ -13,7 +13,6 @@ use super::constants::{
     EXPERIENCE_ORB_SIZE,
 };
 use super::events::{EnemyKilled, PlayerHit};
-use super::pause::PauseState;
 use super::resources::{DefeatSound, HitSelfSound, HitSound};
 use crate::MainState;
 use crate::audio::{SEVolume, spawn_se};
@@ -38,12 +37,7 @@ pub fn handle_collisions(
     enemies: Query<(Entity, &Transform, &EnemyAttributes), With<Enemy>>,
     projectiles: Query<(Entity, &Transform), With<Projectile>>,
     bomb_explosions: Query<(Entity, &Transform, &BombExplosion)>,
-    pause_state: Res<PauseState>,
 ) {
-    if pause_state.paused {
-        return;
-    }
-
     let Ok((player_entity, player_transform)) = player_query.single() else {
         return;
     };

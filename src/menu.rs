@@ -562,7 +562,7 @@ fn menu_action(
     >,
     mut app_exit_writer: MessageWriter<AppExit>,
     mut menu_state: ResMut<NextState<MenuState>>,
-    mut game_state: ResMut<NextState<MainState>>,
+    mut main_state: ResMut<NextState<MainState>>,
 ) {
     for (interaction, menu_button_action) in &interaction_query {
         if *interaction == Interaction::Pressed {
@@ -571,7 +571,7 @@ fn menu_action(
                     app_exit_writer.write(AppExit::Success);
                 }
                 MenuButtonAction::Play => {
-                    game_state.set(MainState::Game);
+                    main_state.set(MainState::Game);
                     menu_state.set(MenuState::Disabled);
                 }
                 MenuButtonAction::Settings => menu_state.set(MenuState::Settings),
