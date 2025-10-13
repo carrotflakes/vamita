@@ -4567,6 +4567,7 @@ name = "vamita"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "getrandom",
  "rand",
 ]
 
