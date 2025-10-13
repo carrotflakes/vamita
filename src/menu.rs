@@ -5,7 +5,10 @@ use bevy::{
     prelude::*,
 };
 
-use crate::{BGM, Difficulty, DisplayQuality, Volume};
+use crate::{
+    Difficulty, DisplayQuality,
+    audio::{BGM, BGMVolume, SEVolume, spawn_se},
+};
 
 use super::MainState;
 
@@ -27,7 +30,8 @@ pub fn plugin(app: &mut App) {
         .add_systems(OnEnter(MenuState::SettingsSound), sound_settings_menu_setup)
         .add_systems(
             Update,
-            setting_button::<Volume>.run_if(in_state(MenuState::SettingsSound)),
+            (setting_button::<BGMVolume>, setting_button::<SEVolume>)
+                .run_if(in_state(MenuState::SettingsSound)),
         )
         .add_systems(
             Update,
@@ -101,17 +105,24 @@ fn button_system(
 // the button as the one currently selected
 fn setting_button<T: Resource + Component + PartialEq + Copy>(
     interaction_query: Query<(&Interaction, &T, Entity), (Changed<Interaction>, With<Button>)>,
-    selected_query: Single<(Entity, &mut BackgroundColor), With<SelectedOption>>,
+    selected_query: Single<(Entity, &mut BackgroundColor, &T), With<SelectedOption>>,
     mut commands: Commands,
     mut setting: ResMut<T>,
+    asset_server: Res<AssetServer>,
 ) {
-    let (previous_button, mut previous_button_color) = selected_query.into_inner();
+    let (previous_button, mut previous_button_color, _) = selected_query.into_inner();
     for (interaction, button_setting, entity) in &interaction_query {
         if *interaction == Interaction::Pressed && *setting != *button_setting {
             *previous_button_color = NORMAL_BUTTON.into();
             commands.entity(previous_button).remove::<SelectedOption>();
             commands.entity(entity).insert(SelectedOption);
             *setting = *button_setting;
+
+            if std::any::TypeId::of::<T>() == std::any::TypeId::of::<SEVolume>() {
+                let handle = asset_server.load("sounds/shoot.wav");
+                let se_volume = unsafe { std::mem::transmute::<_, &ResMut<SEVolume>>(&setting) };
+                spawn_se(&mut commands, se_volume, &handle);
+            }
         }
     }
 }
@@ -433,7 +444,11 @@ fn display_settings_menu_setup(mut commands: Commands, display_quality: Res<Disp
     ));
 }
 
-fn sound_settings_menu_setup(mut commands: Commands, volume: Res<Volume>) {
+fn sound_settings_menu_setup(
+    mut commands: Commands,
+    bgm_volume: Res<BGMVolume>,
+    se_volume: Res<SEVolume>,
+) {
     let button_node = Node {
         width: px(200),
         height: px(65),
@@ -450,8 +465,10 @@ fn sound_settings_menu_setup(mut commands: Commands, volume: Res<Volume>) {
         TextColor(TEXT_COLOR),
     );
 
-    let volume = *volume;
-    let button_node_clone = button_node.clone();
+    let bgm_volume = *bgm_volume;
+    let se_volume = *se_volume;
+    let button_node_clone_bgm = button_node.clone();
+    let button_node_clone_se = button_node.clone();
     commands.spawn((
         DespawnOnExit(MenuState::SettingsSound),
         Node {
@@ -476,8 +493,8 @@ fn sound_settings_menu_setup(mut commands: Commands, volume: Res<Volume>) {
                         ..default()
                     },
                     BackgroundColor(CRIMSON.into()),
-                    Children::spawn((
-                        Spawn((Text::new("Volume"), button_text_style.clone())),
+                    Children::spawn((Spawn((Text::new("BGM"), button_text_style.clone())), {
+                        let button_node_clone = button_node_clone_bgm.clone();
                         SpawnWith(move |parent: &mut ChildSpawner| {
                             for volume_setting in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] {
                                 let mut entity = parent.spawn((
@@ -485,17 +502,46 @@ fn sound_settings_menu_setup(mut commands: Commands, volume: Res<Volume>) {
                                     Node {
                                         width: px(30),
                                         height: px(65),
+                                        margin: UiRect::axes(px(4), px(20)),
                                         ..button_node_clone.clone()
                                     },
                                     BackgroundColor(NORMAL_BUTTON),
-                                    Volume(volume_setting),
+                                    BGMVolume(volume_setting),
                                 ));
-                                if volume == Volume(volume_setting) {
+                                if bgm_volume == BGMVolume(volume_setting) {
                                     entity.insert(SelectedOption);
                                 }
                             }
                         })
-                    ))
+                    }))
+                ),
+                (
+                    Node {
+                        align_items: AlignItems::Center,
+                        ..default()
+                    },
+                    BackgroundColor(CRIMSON.into()),
+                    Children::spawn((Spawn((Text::new("SE"), button_text_style.clone())), {
+                        let button_node_clone = button_node_clone_se.clone();
+                        SpawnWith(move |parent: &mut ChildSpawner| {
+                            for volume_setting in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] {
+                                let mut entity = parent.spawn((
+                                    Button,
+                                    Node {
+                                        width: px(30),
+                                        height: px(65),
+                                        margin: UiRect::axes(px(4), px(20)),
+                                        ..button_node_clone.clone()
+                                    },
+                                    BackgroundColor(NORMAL_BUTTON),
+                                    SEVolume(volume_setting),
+                                ));
+                                if se_volume == SEVolume(volume_setting) {
+                                    entity.insert(SelectedOption);
+                                }
+                            }
+                        })
+                    }))
                 ),
                 (
                     Button,

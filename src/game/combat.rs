@@ -16,6 +16,7 @@ use super::events::{EnemyKilled, PlayerHit};
 use super::pause::PauseState;
 use super::resources::{HitSelfSound, HitSound};
 use crate::MainState;
+use crate::audio::{spawn_se, SEVolume};
 use crate::game::components::LevelEntity;
 use crate::game::player::{Player, PlayerStats};
 use crate::game::ui::Score;
@@ -31,6 +32,7 @@ pub fn handle_collisions(
     mut enemy_killed_messages: MessageWriter<EnemyKilled>,
     hit_sound: Res<HitSound>,
     hit_self_sound: Res<HitSelfSound>,
+    se_volume: Res<SEVolume>,
     player_query: Query<(Entity, &Transform), With<Player>>,
     enemies: Query<(Entity, &Transform, &EnemyAttributes), With<Enemy>>,
     projectiles: Query<(Entity, &Transform), With<Projectile>>,
@@ -78,7 +80,7 @@ pub fn handle_collisions(
                 projectiles_to_despawn.insert(*projectile_entity);
                 score.0 += attributes.score_value;
                 enemy_killed_messages.write(EnemyKilled);
-                commands.spawn((AudioPlayer(hit_sound.0.clone()), PlaybackSettings::DESPAWN));
+                spawn_se(&mut commands, &*se_volume, &hit_sound.0);
                 spawn_enemy_death_particles(&mut commands, *enemy_pos, attributes.color);
                 spawn_experience_orb(&mut commands, *enemy_pos, attributes.xp_value);
                 break;
@@ -90,7 +92,7 @@ pub fn handle_collisions(
                 enemies_to_despawn.insert(*enemy_entity);
                 score.0 += attributes.score_value;
                 enemy_killed_messages.write(EnemyKilled);
-                commands.spawn((AudioPlayer(hit_sound.0.clone()), PlaybackSettings::DESPAWN));
+                spawn_se(&mut commands, &*se_volume, &hit_sound.0);
                 spawn_enemy_death_particles(&mut commands, *enemy_pos, attributes.color);
                 spawn_experience_orb(&mut commands, *enemy_pos, attributes.xp_value);
                 break;
@@ -110,10 +112,7 @@ pub fn handle_collisions(
             if player_stats.health > 0 {
                 player_stats.health = (player_stats.health - attributes.damage).max(0);
                 player_hit_messages.write(PlayerHit);
-                commands.spawn((
-                    AudioPlayer(hit_self_sound.0.clone()),
-                    PlaybackSettings::DESPAWN,
-                ));
+                spawn_se(&mut commands, &*se_volume, &hit_self_sound.0);
             }
         }
     }

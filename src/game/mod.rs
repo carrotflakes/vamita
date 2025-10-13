@@ -21,7 +21,8 @@ use player::player_input;
 use resources::{BombSound, ExperienceOrbSound, HitSelfSound, HitSound, ShootSound};
 
 use crate::{
-    BGM, Difficulty, MainState,
+    Difficulty, MainState,
+    audio::BGM,
     game::{
         combat::EnemySpawnTimer,
         components::LevelEntity,

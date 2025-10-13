@@ -8,6 +8,7 @@ use super::constants::{
 use super::pause::PauseState;
 use super::resources::{BombSound, ShootSound};
 use crate::MainState;
+use crate::audio::{spawn_se, SEVolume};
 use crate::game::components::{Enemy, LevelEntity, Projectile};
 use crate::game::constants::{ARENA_HALF_SIZE, PLAYER_SIZE};
 use crate::game::ui::HealthText;
@@ -65,6 +66,7 @@ pub fn player_auto_fire(
     player_query: Query<&Transform, With<Player>>,
     enemies: Query<&Transform, With<Enemy>>,
     shoot_sound: Res<ShootSound>,
+    se_volume: Res<SEVolume>,
     pause_state: Res<PauseState>,
 ) {
     if pause_state.paused {
@@ -110,10 +112,7 @@ pub fn player_auto_fire(
                 timer: Timer::from_seconds(1.2, TimerMode::Once),
             },
         ));
-        commands.spawn((
-            AudioPlayer(shoot_sound.0.clone()),
-            PlaybackSettings::DESPAWN,
-        ));
+        spawn_se(&mut commands, &*se_volume, &shoot_sound.0);
     }
 }
 
@@ -153,6 +152,7 @@ pub fn update_bombs(
     mut bombs: Query<(Entity, &Transform, &mut Bomb)>,
     pause_state: Res<PauseState>,
     bomb_sound: Res<BombSound>,
+    se_volume: Res<SEVolume>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
@@ -179,7 +179,7 @@ pub fn update_bombs(
                     timer: Timer::from_seconds(BOMB_EXPLOSION_DURATION, TimerMode::Once),
                 },
             ));
-            commands.spawn((AudioPlayer(bomb_sound.0.clone()), PlaybackSettings::DESPAWN));
+            spawn_se(&mut commands, &*se_volume, &bomb_sound.0);
         }
     }
 }

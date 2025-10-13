@@ -8,6 +8,7 @@ use super::constants::{
 };
 use super::pause::PauseState;
 use super::resources::ExperienceOrbSound;
+use crate::audio::{spawn_se, SEVolume};
 use crate::game::player::{Player, PlayerStats};
 
 pub fn experience_orb_behavior(
@@ -18,6 +19,7 @@ pub fn experience_orb_behavior(
     player_query: Query<&Transform, With<Player>>,
     pause_state: Res<PauseState>,
     exp_sound: Res<ExperienceOrbSound>,
+    se_volume: Res<SEVolume>,
 ) {
     if pause_state.paused {
         return;
@@ -41,7 +43,7 @@ pub fn experience_orb_behavior(
         if distance <= pickup_radius {
             player_stats.experience = player_stats.experience.saturating_add(orb.value);
             commands.entity(entity).despawn();
-            commands.spawn((AudioPlayer(exp_sound.0.clone()), PlaybackSettings::DESPAWN));
+            spawn_se(&mut commands, &*se_volume, &exp_sound.0);
             continue;
         }
 
