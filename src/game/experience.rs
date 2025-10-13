@@ -6,6 +6,7 @@ use super::constants::{
     EXPERIENCE_ORB_MAGNET_MAX_SPEED, EXPERIENCE_ORB_MAGNET_RADIUS, EXPERIENCE_ORB_SIZE,
     PLAYER_SIZE,
 };
+use super::powerup::PowerUpProgress;
 use super::resources::ExperienceOrbSound;
 use crate::audio::{SEVolume, spawn_se};
 use crate::game::player::{Player, PlayerStats};
@@ -15,6 +16,7 @@ pub fn experience_orb_behavior(
     time: Res<Time>,
     mut orbs: Query<(Entity, &mut ExperienceOrb, &mut Velocity, &Transform)>,
     mut player_stats: ResMut<PlayerStats>,
+    mut powerup_progress: ResMut<PowerUpProgress>,
     player_query: Query<&Transform, With<Player>>,
     exp_sound: Res<ExperienceOrbSound>,
     se_volume: Res<SEVolume>,
@@ -36,6 +38,7 @@ pub fn experience_orb_behavior(
 
         if distance <= pickup_radius {
             player_stats.experience = player_stats.experience.saturating_add(orb.value);
+            powerup_progress.add_experience(orb.value);
             commands.entity(entity).despawn();
             spawn_se(&mut commands, &*se_volume, &exp_sound.0);
             continue;

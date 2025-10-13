@@ -7,17 +7,19 @@ mod experience;
 mod movement;
 mod pause;
 mod player;
+mod powerup;
 mod resources;
 mod ui;
 
 use bevy::prelude::*;
 use combat::handle_collisions;
-use constants::{BOMB_INTERVAL, ENEMY_SPAWN_INTERVAL, FIRE_RATE, PLAYER_MAX_HEALTH};
+use constants::{ENEMY_SPAWN_INTERVAL, PLAYER_MAX_HEALTH};
 use events::{EnemyKilled, PlayerHit};
 use experience::experience_orb_behavior;
 use movement::{decay_lifetimes, enemy_seek_player, update_projectiles, update_velocity};
 use pause::pause_menu_actions;
 use player::player_input;
+use powerup::{PlayerUpgrades, PowerUpProgress, handle_powerup_selection, powerup_button_visuals};
 use resources::{BombSound, DefeatSound, ExperienceOrbSound, HitSelfSound, HitSound, ShootSound};
 
 use crate::{
@@ -37,6 +39,7 @@ pub enum GameState {
     #[default]
     Playing,
     Paused,
+    SelectingPowerUp,
 }
 
 pub fn plugin(app: &mut App) {
@@ -45,10 +48,10 @@ pub fn plugin(app: &mut App) {
         .insert_resource(EnemyCatalog::new())
         .add_message::<PlayerHit>()
         .add_message::<EnemyKilled>()
-        .add_systems(Update, pause::pause_input.run_if(in_state(MainState::Game)))
         .add_systems(
             Update,
             (
+                pause::pause_input,
                 player_input,
                 ui::update_score_text,
                 player::update_health_text,
@@ -58,7 +61,14 @@ pub fn plugin(app: &mut App) {
         )
         .add_systems(
             Update,
-            pause_menu_actions.run_if(in_state(MainState::Game).and(in_state(GameState::Paused))),
+            (pause::pause_input, pause_menu_actions)
+                .chain()
+                .run_if(in_state(MainState::Game).and(in_state(GameState::Paused))),
+        )
+        .add_systems(
+            Update,
+            (powerup_button_visuals, handle_powerup_selection)
+                .run_if(in_state(MainState::Game).and(in_state(GameState::SelectingPowerUp))),
         )
         .add_systems(
             FixedUpdate,
@@ -74,6 +84,7 @@ pub fn plugin(app: &mut App) {
                 enemy::spawn_enemies,
                 player::player_auto_fire,
                 decay_lifetimes,
+                powerup::spawn_menu_when_ready,
             )
                 .chain()
                 .run_if(in_state(MainState::Game).and(in_state(GameState::Playing))),
@@ -132,14 +143,19 @@ pub fn reset_game(
         difficulty.enemy_spawn_interval(ENEMY_SPAWN_INTERVAL),
         TimerMode::Repeating,
     )));
+    let upgrades = PlayerUpgrades::default();
+    let fire_rate = upgrades.fire_rate_duration();
+    let bomb_interval = upgrades.bomb_interval_duration();
+    commands.insert_resource(upgrades);
     commands.insert_resource(ShootTimer(Timer::from_seconds(
-        FIRE_RATE,
+        fire_rate,
         TimerMode::Repeating,
     )));
     commands.insert_resource(BombTimer(Timer::from_seconds(
-        BOMB_INTERVAL,
+        bomb_interval,
         TimerMode::Repeating,
     )));
+    commands.insert_resource(PowerUpProgress::default());
     commands.insert_resource(PlayerStats {
         health: difficulty.player_max_health(PLAYER_MAX_HEALTH),
         experience: 0,

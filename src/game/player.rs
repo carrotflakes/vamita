@@ -5,6 +5,7 @@ use super::components::{Bomb, BombExplosion, Lifetime, Velocity};
 use super::constants::{
     BOMB_EXPLOSION_DURATION, BOMB_EXPLOSION_RADIUS, BOMB_FUSE, PROJECTILE_SPEED,
 };
+use super::powerup::PlayerUpgrades;
 use super::resources::{BombSound, ShootSound};
 use crate::MainState;
 use crate::audio::{SEVolume, spawn_se};
@@ -30,7 +31,11 @@ pub struct ShootTimer(pub Timer);
 #[derive(Resource)]
 pub struct BombTimer(pub Timer);
 
-pub fn player_input(mut query: Query<&mut Velocity, With<Player>>, kb: Res<ButtonInput<KeyCode>>) {
+pub fn player_input(
+    mut query: Query<&mut Velocity, With<Player>>,
+    kb: Res<ButtonInput<KeyCode>>,
+    upgrades: Res<PlayerUpgrades>,
+) {
     if let Ok(mut velocity) = query.single_mut() {
         let mut dir = Vec2::ZERO;
         if kb.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) {
@@ -46,7 +51,7 @@ pub fn player_input(mut query: Query<&mut Velocity, With<Player>>, kb: Res<Butto
             dir.x += 1.0;
         }
         let dir = dir.normalize_or_zero();
-        velocity.0 = dir * super::constants::PLAYER_SPEED;
+        velocity.0 = dir * upgrades.movement_speed();
     }
 }
 
