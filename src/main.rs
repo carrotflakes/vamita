@@ -1,6 +1,7 @@
 mod audio;
 mod game;
 mod menu;
+mod persist;
 mod splash;
 
 use bevy::prelude::*;
@@ -50,6 +51,7 @@ impl Difficulty {
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(bevy::log::LogPlugin { ..default() }))
+        .add_plugins(persist::plugin)
         .insert_resource(ClearColor(Color::srgb(0.1, 0.1, 0.15)))
         .insert_resource(DisplayQuality::High)
         .insert_resource(Difficulty::default())

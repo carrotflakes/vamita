@@ -1,17 +1,31 @@
 use bevy::prelude::*;
+use bevy_pkv::PersistentResourceAppExtensions;
+use serde::{Deserialize, Serialize};
 
-#[derive(Resource, Debug, Component, PartialEq, Eq, Clone, Copy)]
+#[derive(Resource, Debug, Component, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub struct BGMVolume(pub u32);
 
-#[derive(Resource, Debug, Component, PartialEq, Eq, Clone, Copy)]
+#[derive(Resource, Debug, Component, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub struct SEVolume(pub u32);
+
+impl Default for BGMVolume {
+    fn default() -> Self {
+        Self(5)
+    }
+}
+
+impl Default for SEVolume {
+    fn default() -> Self {
+        Self(9)
+    }
+}
 
 #[derive(Component)]
 pub struct BGM;
 
 pub fn plugin(app: &mut App) {
-    app.insert_resource(BGMVolume(5))
-        .insert_resource(SEVolume(9))
+    app.init_persistent_resource::<BGMVolume>()
+        .init_persistent_resource::<SEVolume>()
         .add_systems(Update, update_bgm_volume);
 }
 
