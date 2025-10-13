@@ -18,6 +18,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Rustup Update
         run: rustup update
 
@@ -25,9 +27,14 @@ jobs:
         run: rustup target add wasm32-unknown-unknown
 
       - name: Install wasm-bindgen-cli
-        run: cargo install wasm-bindgen-cli
+        run: cargo install wasm-bindgen-cli --locked
 
-      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            gense -> target
+          cache-on-failure: true
 
       - name: Build
         run: ./build_web.sh
