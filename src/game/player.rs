@@ -8,7 +8,7 @@ use super::constants::{
 use super::pause::PauseState;
 use super::resources::{BombSound, ShootSound};
 use crate::MainState;
-use crate::audio::{spawn_se, SEVolume};
+use crate::audio::{SEVolume, spawn_se};
 use crate::game::components::{Enemy, LevelEntity, Projectile};
 use crate::game::constants::{ARENA_HALF_SIZE, PLAYER_SIZE};
 use crate::game::ui::HealthText;
@@ -140,7 +140,9 @@ pub fn player_place_bomb(
             Transform::from_translation(Vec3::new(position.x, position.y, 0.4)),
             Bomb {
                 timer: Timer::from_seconds(BOMB_FUSE, TimerMode::Once),
+                blink_timer: Timer::from_seconds(0.2, TimerMode::Repeating),
                 radius: BOMB_EXPLOSION_RADIUS,
+                visible: true,
             },
         ));
     }
@@ -149,7 +151,7 @@ pub fn player_place_bomb(
 pub fn update_bombs(
     mut commands: Commands,
     time: Res<Time>,
-    mut bombs: Query<(Entity, &Transform, &mut Bomb)>,
+    mut bombs: Query<(Entity, &Transform, &mut Sprite, &mut Bomb)>,
     pause_state: Res<PauseState>,
     bomb_sound: Res<BombSound>,
     se_volume: Res<SEVolume>,
@@ -160,7 +162,12 @@ pub fn update_bombs(
         return;
     }
 
-    for (entity, transform, mut bomb) in &mut bombs {
+    for (entity, transform, mut sprite, mut bomb) in &mut bombs {
+        if bomb.blink_timer.tick(time.delta()).just_finished() {
+            bomb.visible = !bomb.visible;
+            sprite.color.set_alpha(if bomb.visible { 0.9 } else { 0.4 });
+        }
+
         if bomb.timer.tick(time.delta()).just_finished() {
             let position = transform.translation;
             commands.entity(entity).despawn();

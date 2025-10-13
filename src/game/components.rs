@@ -13,7 +13,9 @@ pub struct Projectile;
 #[derive(Component)]
 pub struct Bomb {
     pub timer: Timer,
+    pub blink_timer: Timer,
     pub radius: f32,
+    pub visible: bool,
 }
 
 #[derive(Component)]
