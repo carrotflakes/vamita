@@ -14,3 +14,6 @@ pub struct ExperienceOrbSound(pub Handle<AudioSource>);
 
 #[derive(Resource, Clone)]
 pub struct BombSound(pub Handle<AudioSource>);
+
+#[derive(Resource, Clone)]
+pub struct DefeatSound(pub Handle<AudioSource>);

@@ -54,3 +54,17 @@ pub fn bpf(sample_rate: f32, center_freq: f32, q: f32) -> impl FnMut(f32) -> f32
         output
     }
 }
+
+pub fn delay(sample_rate: f32, delay_time: f32, feedback: f32) -> impl FnMut(f32) -> f32 {
+    let buffer_size = (sample_rate * delay_time).ceil() as usize;
+    let mut buffer = vec![0.0; buffer_size];
+    let mut write_index = 0;
+
+    move |input: f32| {
+        let delayed_sample = buffer[write_index];
+        let output = input + delayed_sample * feedback;
+        buffer[write_index] = output;
+        write_index = (write_index + 1) % buffer_size;
+        output
+    }
+}

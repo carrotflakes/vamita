@@ -14,9 +14,9 @@ use super::constants::{
 };
 use super::events::{EnemyKilled, PlayerHit};
 use super::pause::PauseState;
-use super::resources::{HitSelfSound, HitSound};
+use super::resources::{DefeatSound, HitSelfSound, HitSound};
 use crate::MainState;
-use crate::audio::{spawn_se, SEVolume};
+use crate::audio::{SEVolume, spawn_se};
 use crate::game::components::LevelEntity;
 use crate::game::player::{Player, PlayerStats};
 use crate::game::ui::Score;
@@ -33,6 +33,7 @@ pub fn handle_collisions(
     hit_sound: Res<HitSound>,
     hit_self_sound: Res<HitSelfSound>,
     se_volume: Res<SEVolume>,
+    defeat_sound: Res<DefeatSound>,
     player_query: Query<(Entity, &Transform), With<Player>>,
     enemies: Query<(Entity, &Transform, &EnemyAttributes), With<Enemy>>,
     projectiles: Query<(Entity, &Transform), With<Projectile>>,
@@ -125,6 +126,7 @@ pub fn handle_collisions(
     }
 
     if player_stats.health <= 0 {
+        spawn_se(&mut commands, &*se_volume, &defeat_sound.0);
         commands.entity(player_entity).despawn();
     }
 }

@@ -18,7 +18,7 @@ use experience::experience_orb_behavior;
 use movement::{decay_lifetimes, enemy_seek_player, update_projectiles, update_velocity};
 use pause::{PauseState, pause_menu_actions};
 use player::player_input;
-use resources::{BombSound, ExperienceOrbSound, HitSelfSound, HitSound, ShootSound};
+use resources::{BombSound, DefeatSound, ExperienceOrbSound, HitSelfSound, HitSound, ShootSound};
 
 use crate::{
     Difficulty, MainState,
@@ -78,12 +78,14 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, difficulty: Res
     let shoot_sound_handle = asset_server.load("sounds/shoot.wav");
     let exp_sound_handle = asset_server.load("sounds/exp.wav");
     let bomb_sound_handle = asset_server.load("sounds/bomb.wav");
+    let defeat_sound_handle = asset_server.load("sounds/defeat.wav");
 
     commands.insert_resource(HitSound(hit_sound_handle));
     commands.insert_resource(HitSelfSound(hit_self_sound_handle));
     commands.insert_resource(ShootSound(shoot_sound_handle));
     commands.insert_resource(ExperienceOrbSound(exp_sound_handle));
     commands.insert_resource(BombSound(bomb_sound_handle));
+    commands.insert_resource(DefeatSound(defeat_sound_handle));
 
     commands.spawn((
         DespawnOnExit(MainState::Game),
