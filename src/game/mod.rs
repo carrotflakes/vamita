@@ -81,6 +81,7 @@ pub fn plugin(app: &mut App) {
                 player::player_place_bomb,
                 player::update_bombs,
                 handle_collisions,
+                enemy::update_enemy_hit_flash,
                 enemy::spawn_enemies,
                 player::player_auto_fire,
                 decay_lifetimes,

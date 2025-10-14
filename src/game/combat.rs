@@ -10,7 +10,9 @@ use super::constants::{
     ENEMY_DEATH_PARTICLES, EXPERIENCE_ORB_INITIAL_SPEED_MAX, EXPERIENCE_ORB_INITIAL_SPEED_MIN,
     EXPERIENCE_ORB_SIZE,
 };
-use super::enemy::{Enemy, EnemyAttributes};
+use super::enemy::{
+    ENEMY_HIT_FLASH_COLOR, ENEMY_HIT_FLASH_DURATION, Enemy, EnemyAttributes, EnemyHitFlash,
+};
 use super::events::{EnemyKilled, PlayerHit};
 use super::resources::{DefeatSound, HitSelfSound, HitSound};
 use crate::MainState;
@@ -33,7 +35,13 @@ pub fn handle_collisions(
     se_volume: Res<SEVolume>,
     defeat_sound: Res<DefeatSound>,
     player_query: Query<(Entity, &Transform), With<Player>>,
-    mut enemies: Query<(Entity, &mut Enemy, &Transform, &EnemyAttributes)>,
+    mut enemies: Query<(
+        Entity,
+        &mut Enemy,
+        &mut Sprite,
+        &Transform,
+        &EnemyAttributes,
+    )>,
     projectiles: Query<(Entity, &Projectile, &Transform)>,
     bomb_explosions: Query<(Entity, &Transform, &BombExplosion)>,
 ) {
@@ -51,12 +59,13 @@ pub fn handle_collisions(
     let mut enemies_to_despawn: HashSet<Entity> = HashSet::new();
     let mut projectiles_to_despawn: HashSet<Entity> = HashSet::new();
 
-    // enemy-projectile collisions
-    for (enemy_entity, mut enemy, transform, attributes) in &mut enemies {
+    for (enemy_entity, mut enemy, mut sprite, transform, attributes) in &mut enemies {
         if enemies_to_despawn.contains(&enemy_entity) {
             continue;
         }
+
         let enemy_pos = transform.translation.xy();
+        let mut enemy_hit = false;
 
         for (projectile_entity, projectile, transform) in &projectiles {
             if projectiles_to_despawn.contains(&projectile_entity) {
@@ -66,40 +75,38 @@ pub fn handle_collisions(
             if collide(enemy_pos, projectile_pos, 12.0) {
                 projectiles_to_despawn.insert(projectile_entity);
                 enemy.health -= projectile.damage;
-                if enemy.health <= 0 {
-                    enemies_to_despawn.insert(enemy_entity);
-                    score.0 += attributes.score_value;
-                    enemy_killed_messages.write(EnemyKilled);
-                    spawn_se(&mut commands, &*se_volume, &hit_sound.0);
-                    spawn_enemy_death_particles(&mut commands, enemy_pos, attributes.color);
-                    spawn_experience_orb(&mut commands, enemy_pos, attributes.xp_value);
-                }
-                break;
+                enemy_hit = true;
             }
         }
 
         for (_, explosion_pos, radius) in &bomb_explosions_data {
             if collide(enemy_pos, *explosion_pos, *radius) {
                 enemy.health -= 1;
-                if enemy.health <= 0 {
-                    enemies_to_despawn.insert(enemy_entity);
-                    score.0 += attributes.score_value;
-                    enemy_killed_messages.write(EnemyKilled);
-                    spawn_se(&mut commands, &*se_volume, &hit_sound.0);
-                    spawn_enemy_death_particles(&mut commands, enemy_pos, attributes.color);
-                    spawn_experience_orb(&mut commands, enemy_pos, attributes.xp_value);
-                }
+                enemy_hit = true;
+                // Only apply damage from one explosion per frame
                 break;
             }
         }
-    }
 
-    // enemy-player collisions
-    for (enemy_entity, _, transform, attributes) in &enemies {
+        if enemy_hit {
+            if enemy.health <= 0 {
+                enemies_to_despawn.insert(enemy_entity);
+                score.0 += attributes.score_value;
+                enemy_killed_messages.write(EnemyKilled);
+                spawn_se(&mut commands, &*se_volume, &hit_sound.0);
+                spawn_enemy_death_particles(&mut commands, enemy_pos, attributes.color);
+                spawn_experience_orb(&mut commands, enemy_pos, attributes.xp_value);
+            } else {
+                sprite.color = ENEMY_HIT_FLASH_COLOR;
+                commands.entity(enemy_entity).insert(EnemyHitFlash {
+                    timer: Timer::from_seconds(ENEMY_HIT_FLASH_DURATION, TimerMode::Once),
+                });
+            }
+        }
+
         if enemies_to_despawn.contains(&enemy_entity) {
             continue;
         }
-        let enemy_pos = transform.translation.xy();
 
         if collide(enemy_pos, player_transform.translation.xy(), 12.0) {
             enemies_to_despawn.insert(enemy_entity);

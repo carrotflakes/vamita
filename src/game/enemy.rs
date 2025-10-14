@@ -14,6 +14,14 @@ pub struct Enemy {
     pub health: i32,
 }
 
+pub const ENEMY_HIT_FLASH_DURATION: f32 = 0.08;
+pub const ENEMY_HIT_FLASH_COLOR: Color = Color::WHITE;
+
+#[derive(Component)]
+pub struct EnemyHitFlash {
+    pub timer: Timer,
+}
+
 #[derive(Component, Copy, Clone)]
 pub struct EnemyAttributes {
     pub health: i32,
@@ -144,5 +152,19 @@ pub fn spawn_enemies(
             attributes,
             Velocity(dir * attributes.speed),
         ));
+    }
+}
+
+pub fn update_enemy_hit_flash(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &EnemyAttributes, &mut Sprite, &mut EnemyHitFlash)>,
+) {
+    for (entity, attributes, mut sprite, mut flash) in &mut query {
+        flash.timer.tick(time.delta());
+        if flash.timer.is_finished() {
+            sprite.color = attributes.color;
+            commands.entity(entity).remove::<EnemyHitFlash>();
+        }
     }
 }
