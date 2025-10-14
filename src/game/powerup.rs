@@ -1,7 +1,10 @@
 use bevy::prelude::*;
+use rand::seq::SliceRandom;
 use std::time::Duration;
 
-use super::constants::{BOMB_INTERVAL, FIRE_RATE, PLAYER_SPEED};
+use super::constants::{
+    BOMB_EXPLOSION_RADIUS, BOMB_INTERVAL, FIRE_RATE, PLAYER_SPEED, PROJECTILE_SPEED,
+};
 use super::player::{BombTimer, ShootTimer};
 use super::{GameState, OnGameScreen};
 
@@ -59,11 +62,18 @@ pub struct PlayerUpgrades {
     pub rapid_fire_level: u32,
     pub bomb_rate_level: u32,
     pub move_speed_level: u32,
+    pub projectile_damage_level: u32,
+    pub projectile_speed_level: u32,
+    pub explosion_radius_level: u32,
 }
 
 impl PlayerUpgrades {
-    const RATE_MULTIPLIER: f32 = 0.95;
-    const SPEED_INCREMENT: f32 = 0.05;
+    const RATE_MULTIPLIER: f32 = 0.9;
+    const SPEED_INCREMENT: f32 = 0.1;
+    const PROJECTILE_DAMAGE_BASE: i32 = 1;
+    const PROJECTILE_DAMAGE_INCREMENT: i32 = 1;
+    const PROJECTILE_SPEED_INCREMENT: f32 = 0.1;
+    const EXPLOSION_RADIUS_INCREMENT: f32 = 0.15;
 
     pub fn fire_rate_duration(&self) -> f32 {
         FIRE_RATE * Self::RATE_MULTIPLIER.powi(self.rapid_fire_level as i32)
@@ -75,6 +85,32 @@ impl PlayerUpgrades {
 
     pub fn movement_speed(&self) -> f32 {
         PLAYER_SPEED * (1.0 + Self::SPEED_INCREMENT * self.move_speed_level as f32)
+    }
+
+    pub fn projectile_damage(&self) -> i32 {
+        Self::PROJECTILE_DAMAGE_BASE
+            + Self::PROJECTILE_DAMAGE_INCREMENT * self.projectile_damage_level as i32
+    }
+
+    pub fn projectile_speed(&self) -> f32 {
+        PROJECTILE_SPEED
+            * (1.0 + Self::PROJECTILE_SPEED_INCREMENT * self.projectile_speed_level as f32)
+    }
+
+    pub fn bomb_explosion_radius(&self) -> f32 {
+        BOMB_EXPLOSION_RADIUS
+            * (1.0 + Self::EXPLOSION_RADIUS_INCREMENT * self.explosion_radius_level as f32)
+    }
+
+    pub fn get_level_by_choice(&self, choice: PowerUpChoice) -> u32 {
+        match choice {
+            PowerUpChoice::RapidFire => self.rapid_fire_level,
+            PowerUpChoice::BombRapidFire => self.bomb_rate_level,
+            PowerUpChoice::MoveSpeed => self.move_speed_level,
+            PowerUpChoice::ProjectileDamage => self.projectile_damage_level,
+            PowerUpChoice::ProjectileSpeed => self.projectile_speed_level,
+            PowerUpChoice::ExplosionRadius => self.explosion_radius_level,
+        }
     }
 }
 
@@ -91,6 +127,9 @@ pub enum PowerUpChoice {
     RapidFire,
     BombRapidFire,
     MoveSpeed,
+    ProjectileDamage,
+    ProjectileSpeed,
+    ExplosionRadius,
 }
 
 impl PowerUpChoice {
@@ -99,6 +138,9 @@ impl PowerUpChoice {
             PowerUpChoice::RapidFire => "Rapid Fire",
             PowerUpChoice::BombRapidFire => "Bomb Rapid Fire",
             PowerUpChoice::MoveSpeed => "Move Speed",
+            PowerUpChoice::ProjectileDamage => "Bullet Damage",
+            PowerUpChoice::ProjectileSpeed => "Bullet Speed",
+            PowerUpChoice::ExplosionRadius => "Blast Radius",
         }
     }
 
@@ -107,8 +149,28 @@ impl PowerUpChoice {
             PowerUpChoice::RapidFire => "Shortens the cooldown between normal shots.",
             PowerUpChoice::BombRapidFire => "Shortens the cooldown between bomb placements.",
             PowerUpChoice::MoveSpeed => "Increases movement speed.",
+            PowerUpChoice::ProjectileDamage => "Increases projectile damage by one per level.",
+            PowerUpChoice::ProjectileSpeed => "Sends bullets flying faster.",
+            PowerUpChoice::ExplosionRadius => "Expands bomb explosion size.",
         }
     }
+}
+
+const ALL_POWER_UP_CHOICES: [PowerUpChoice; 6] = [
+    PowerUpChoice::RapidFire,
+    PowerUpChoice::BombRapidFire,
+    PowerUpChoice::MoveSpeed,
+    PowerUpChoice::ProjectileDamage,
+    PowerUpChoice::ProjectileSpeed,
+    PowerUpChoice::ExplosionRadius,
+];
+
+fn random_powerup_choices() -> Vec<PowerUpChoice> {
+    let mut choices = ALL_POWER_UP_CHOICES;
+    let mut rng = rand::rng();
+    choices.shuffle(&mut rng);
+    let count = choices.len().min(3);
+    choices[..count].to_vec()
 }
 
 pub fn spawn_menu_when_ready(
@@ -117,6 +179,7 @@ pub fn spawn_menu_when_ready(
     progress: Res<PowerUpProgress>,
     menu_query: Query<Entity, With<PowerUpMenu>>,
     screen_root: Single<Entity, With<OnGameScreen>>,
+    upgrades: ResMut<PlayerUpgrades>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
     if !progress.has_pending() || !menu_query.is_empty() {
@@ -124,7 +187,8 @@ pub fn spawn_menu_when_ready(
     }
 
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-    spawn_menu(&mut commands, *screen_root, font);
+    let options = random_powerup_choices();
+    spawn_menu(&mut commands, *screen_root, font, &options, &upgrades);
     next_state.set(GameState::SelectingPowerUp);
 }
 
@@ -173,7 +237,8 @@ pub fn handle_powerup_selection(
 
         if progress.has_pending() {
             let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-            spawn_menu(&mut commands, *screen_root, font);
+            let options = random_powerup_choices();
+            spawn_menu(&mut commands, *screen_root, font, &options, &upgrades);
         } else {
             next_state.set(GameState::Playing);
         }
@@ -182,66 +247,79 @@ pub fn handle_powerup_selection(
     }
 }
 
-fn spawn_menu(commands: &mut Commands, parent: Entity, font: Handle<Font>) {
+fn spawn_menu(
+    commands: &mut Commands,
+    parent: Entity,
+    font: Handle<Font>,
+    choices: &[PowerUpChoice],
+    upgrades: &PlayerUpgrades,
+) {
     commands.entity(parent).with_children(|parent| {
-        parent.spawn((
-            PowerUpMenu,
-            Node {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            BackgroundColor(OVERLAY_COLOR),
-            children![(
+        parent
+            .spawn((
+                PowerUpMenu,
                 Node {
-                    flex_direction: FlexDirection::Column,
-                    width: Val::Px(520.0),
-                    row_gap: Val::Px(18.0),
-                    padding: UiRect::axes(Val::Px(32.0), Val::Px(28.0)),
-                    align_items: AlignItems::Stretch,
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(100.0),
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
                     ..default()
                 },
-                BackgroundColor(PANEL_COLOR),
-                children![
-                    (
-                        Text::new("Power Up!".to_string()),
-                        TextFont {
-                            font: font.clone(),
-                            font_size: 42.0,
-                            ..default()
-                        },
-                        TextColor(Color::WHITE),
-                    ),
-                    (
-                        Text::new("Choose an upgrade".to_string()),
-                        TextFont {
-                            font: font.clone(),
-                            font_size: 20.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgba(0.8, 0.8, 0.85, 1.0)),
-                    ),
-                    (
+                BackgroundColor(OVERLAY_COLOR),
+            ))
+            .with_children(|overlay| {
+                overlay
+                    .spawn((
                         Node {
                             flex_direction: FlexDirection::Column,
-                            row_gap: Val::Px(12.0),
+                            width: Val::Px(520.0),
+                            row_gap: Val::Px(18.0),
+                            padding: UiRect::axes(Val::Px(32.0), Val::Px(28.0)),
+                            align_items: AlignItems::Stretch,
                             ..default()
                         },
-                        children![
-                            button_bundle(font.clone(), PowerUpChoice::RapidFire),
-                            button_bundle(font.clone(), PowerUpChoice::BombRapidFire),
-                            button_bundle(font, PowerUpChoice::MoveSpeed),
-                        ],
-                    ),
-                ],
-            ),],
-        ));
+                        BackgroundColor(PANEL_COLOR),
+                    ))
+                    .with_children(|panel| {
+                        panel.spawn((
+                            Text::new("Power Up!".to_string()),
+                            TextFont {
+                                font: font.clone(),
+                                font_size: 42.0,
+                                ..default()
+                            },
+                            TextColor(Color::WHITE),
+                        ));
+                        panel.spawn((
+                            Text::new("Choose an upgrade".to_string()),
+                            TextFont {
+                                font: font.clone(),
+                                font_size: 20.0,
+                                ..default()
+                            },
+                            TextColor(Color::srgba(0.8, 0.8, 0.85, 1.0)),
+                        ));
+                        panel
+                            .spawn((Node {
+                                flex_direction: FlexDirection::Column,
+                                row_gap: Val::Px(12.0),
+                                ..default()
+                            },))
+                            .with_children(|list| {
+                                for &choice in choices {
+                                    list.spawn(button_bundle(
+                                        font.clone(),
+                                        choice,
+                                        upgrades.get_level_by_choice(choice),
+                                    ));
+                                }
+                            });
+                    });
+            });
     });
 }
 
-fn button_bundle(font: Handle<Font>, choice: PowerUpChoice) -> impl Bundle {
+fn button_bundle(font: Handle<Font>, choice: PowerUpChoice, level: u32) -> impl Bundle {
     (
         Button,
         PowerUpButton { choice },
@@ -256,7 +334,7 @@ fn button_bundle(font: Handle<Font>, choice: PowerUpChoice) -> impl Bundle {
         BackgroundColor(BUTTON_COLOR),
         children![
             (
-                Text::new(choice.label().to_string()),
+                Text::new(format!("{} ({})", choice.label(), level)),
                 TextFont {
                     font: font.clone(),
                     font_size: 26.0,
@@ -294,6 +372,15 @@ fn apply_choice(
         }
         PowerUpChoice::MoveSpeed => {
             upgrades.move_speed_level = upgrades.move_speed_level.saturating_add(1);
+        }
+        PowerUpChoice::ProjectileDamage => {
+            upgrades.projectile_damage_level = upgrades.projectile_damage_level.saturating_add(1);
+        }
+        PowerUpChoice::ProjectileSpeed => {
+            upgrades.projectile_speed_level = upgrades.projectile_speed_level.saturating_add(1);
+        }
+        PowerUpChoice::ExplosionRadius => {
+            upgrades.explosion_radius_level = upgrades.explosion_radius_level.saturating_add(1);
         }
     }
 }

@@ -2,9 +2,7 @@ use bevy::input::ButtonInput;
 use bevy::prelude::*;
 
 use super::components::{Bomb, BombExplosion, Lifetime, Velocity};
-use super::constants::{
-    BOMB_EXPLOSION_DURATION, BOMB_EXPLOSION_RADIUS, BOMB_FUSE, PROJECTILE_SPEED,
-};
+use super::constants::{BOMB_EXPLOSION_DURATION, BOMB_FUSE};
 use super::enemy::Enemy;
 use super::powerup::PlayerUpgrades;
 use super::resources::{BombSound, ShootSound};
@@ -64,6 +62,7 @@ pub fn player_auto_fire(
     enemies: Query<&Transform, With<Enemy>>,
     shoot_sound: Res<ShootSound>,
     se_volume: Res<SEVolume>,
+    upgrades: Res<PlayerUpgrades>,
 ) {
     if timer.0.tick(time.delta()).just_finished() {
         let Ok(transform) = player_query.single() else {
@@ -98,8 +97,10 @@ pub fn player_auto_fire(
             },
             Transform::from_translation(transform.translation + Vec3::new(0.0, 0.0, 1.0))
                 .with_rotation(Quat::from_rotation_z(dir.y.atan2(dir.x))),
-            Projectile { damage: 1 },
-            Velocity(dir * PROJECTILE_SPEED),
+            Projectile {
+                damage: upgrades.projectile_damage(),
+            },
+            Velocity(dir * upgrades.projectile_speed()),
             Lifetime {
                 timer: Timer::from_seconds(1.2, TimerMode::Once),
             },
@@ -113,6 +114,7 @@ pub fn player_place_bomb(
     time: Res<Time>,
     mut timer: ResMut<BombTimer>,
     player_query: Query<&Transform, With<Player>>,
+    upgrades: Res<PlayerUpgrades>,
 ) {
     if timer.0.tick(time.delta()).just_finished() {
         let Ok(transform) = player_query.single() else {
@@ -128,7 +130,7 @@ pub fn player_place_bomb(
             Bomb {
                 timer: Timer::from_seconds(BOMB_FUSE, TimerMode::Once),
                 blink_timer: Timer::from_seconds(0.2, TimerMode::Repeating),
-                radius: BOMB_EXPLOSION_RADIUS,
+                radius: upgrades.bomb_explosion_radius(),
                 visible: true,
             },
         ));

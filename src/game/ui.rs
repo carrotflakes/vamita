@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use super::powerup::PowerUpProgress;
-use crate::{MainState, game::player::PlayerStats};
+use crate::MainState;
 
 #[derive(Resource, Default)]
 pub struct Score(pub u32);
@@ -74,17 +74,10 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 pub fn update_score_text(
     score: Res<Score>,
-    player_stats: Res<PlayerStats>,
     progress: Res<PowerUpProgress>,
     score_root: Single<Entity, (With<ScoreboardUi>, With<Text2d>)>,
     mut writer: TextUiWriter,
 ) {
-    let progress_text = {
-        let (current, required) = progress.progress_to_next();
-        format!("{}/{}", current, required)
-    };
-    *writer.text(*score_root, 1) = format!(
-        "{}\nXP: {} ({})",
-        score.0, player_stats.experience, progress_text
-    );
+    let (current, required) = progress.progress_to_next();
+    *writer.text(*score_root, 1) = format!("{}\nXP: {}/{}", score.0, current, required);
 }
