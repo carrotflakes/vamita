@@ -4,14 +4,13 @@ use std::f32::consts::TAU;
 use bevy::prelude::*;
 use rand::Rng;
 
-use super::components::{
-    BombExplosion, Enemy, EnemyAttributes, ExperienceOrb, Lifetime, Particle, Projectile, Velocity,
-};
+use super::components::{BombExplosion, ExperienceOrb, Lifetime, Particle, Projectile, Velocity};
 use super::constants::{
     ENEMY_DEATH_PARTICLE_LIFETIME, ENEMY_DEATH_PARTICLE_SIZE, ENEMY_DEATH_PARTICLE_SPEED,
     ENEMY_DEATH_PARTICLES, EXPERIENCE_ORB_INITIAL_SPEED_MAX, EXPERIENCE_ORB_INITIAL_SPEED_MIN,
     EXPERIENCE_ORB_SIZE,
 };
+use super::enemy::{Enemy, EnemyAttributes};
 use super::events::{EnemyKilled, PlayerHit};
 use super::resources::{DefeatSound, HitSelfSound, HitSound};
 use crate::MainState;
@@ -34,22 +33,14 @@ pub fn handle_collisions(
     se_volume: Res<SEVolume>,
     defeat_sound: Res<DefeatSound>,
     player_query: Query<(Entity, &Transform), With<Player>>,
-    enemies: Query<(Entity, &Transform, &EnemyAttributes), With<Enemy>>,
-    projectiles: Query<(Entity, &Transform), With<Projectile>>,
+    mut enemies: Query<(Entity, &mut Enemy, &Transform, &EnemyAttributes)>,
+    projectiles: Query<(Entity, &Projectile, &Transform)>,
     bomb_explosions: Query<(Entity, &Transform, &BombExplosion)>,
 ) {
     let Ok((player_entity, player_transform)) = player_query.single() else {
         return;
     };
 
-    let enemies_data: Vec<(Entity, Vec2, EnemyAttributes)> = enemies
-        .iter()
-        .map(|(entity, transform, attributes)| (entity, transform.translation.xy(), *attributes))
-        .collect();
-    let projectiles_data: Vec<(Entity, Vec2)> = projectiles
-        .iter()
-        .map(|(entity, transform)| (entity, transform.translation.xy()))
-        .collect();
     let bomb_explosions_data: Vec<(Entity, Vec2, f32)> = bomb_explosions
         .iter()
         .map(|(entity, transform, explosion)| {
@@ -61,49 +52,58 @@ pub fn handle_collisions(
     let mut projectiles_to_despawn: HashSet<Entity> = HashSet::new();
 
     // enemy-projectile collisions
-    for (enemy_entity, enemy_pos, attributes) in &enemies_data {
-        if enemies_to_despawn.contains(enemy_entity) {
+    for (enemy_entity, mut enemy, transform, attributes) in &mut enemies {
+        if enemies_to_despawn.contains(&enemy_entity) {
             continue;
         }
+        let enemy_pos = transform.translation.xy();
 
-        for (projectile_entity, projectile_pos) in &projectiles_data {
-            if projectiles_to_despawn.contains(projectile_entity) {
+        for (projectile_entity, projectile, transform) in &projectiles {
+            if projectiles_to_despawn.contains(&projectile_entity) {
                 continue;
             }
-            if collide(*enemy_pos, *projectile_pos, 12.0) {
-                enemies_to_despawn.insert(*enemy_entity);
-                projectiles_to_despawn.insert(*projectile_entity);
-                score.0 += attributes.score_value;
-                enemy_killed_messages.write(EnemyKilled);
-                spawn_se(&mut commands, &*se_volume, &hit_sound.0);
-                spawn_enemy_death_particles(&mut commands, *enemy_pos, attributes.color);
-                spawn_experience_orb(&mut commands, *enemy_pos, attributes.xp_value);
+            let projectile_pos = transform.translation.xy();
+            if collide(enemy_pos, projectile_pos, 12.0) {
+                projectiles_to_despawn.insert(projectile_entity);
+                enemy.health -= projectile.damage;
+                if enemy.health <= 0 {
+                    enemies_to_despawn.insert(enemy_entity);
+                    score.0 += attributes.score_value;
+                    enemy_killed_messages.write(EnemyKilled);
+                    spawn_se(&mut commands, &*se_volume, &hit_sound.0);
+                    spawn_enemy_death_particles(&mut commands, enemy_pos, attributes.color);
+                    spawn_experience_orb(&mut commands, enemy_pos, attributes.xp_value);
+                }
                 break;
             }
         }
 
         for (_, explosion_pos, radius) in &bomb_explosions_data {
-            if collide(*enemy_pos, *explosion_pos, *radius) {
-                enemies_to_despawn.insert(*enemy_entity);
-                score.0 += attributes.score_value;
-                enemy_killed_messages.write(EnemyKilled);
-                spawn_se(&mut commands, &*se_volume, &hit_sound.0);
-                spawn_enemy_death_particles(&mut commands, *enemy_pos, attributes.color);
-                spawn_experience_orb(&mut commands, *enemy_pos, attributes.xp_value);
+            if collide(enemy_pos, *explosion_pos, *radius) {
+                enemy.health -= 1;
+                if enemy.health <= 0 {
+                    enemies_to_despawn.insert(enemy_entity);
+                    score.0 += attributes.score_value;
+                    enemy_killed_messages.write(EnemyKilled);
+                    spawn_se(&mut commands, &*se_volume, &hit_sound.0);
+                    spawn_enemy_death_particles(&mut commands, enemy_pos, attributes.color);
+                    spawn_experience_orb(&mut commands, enemy_pos, attributes.xp_value);
+                }
                 break;
             }
         }
     }
 
     // enemy-player collisions
-    for (enemy_entity, enemy_pos, attributes) in &enemies_data {
-        if enemies_to_despawn.contains(enemy_entity) {
+    for (enemy_entity, _, transform, attributes) in &enemies {
+        if enemies_to_despawn.contains(&enemy_entity) {
             continue;
         }
+        let enemy_pos = transform.translation.xy();
 
-        if collide(*enemy_pos, player_transform.translation.xy(), 12.0) {
-            enemies_to_despawn.insert(*enemy_entity);
-            spawn_enemy_death_particles(&mut commands, *enemy_pos, attributes.color);
+        if collide(enemy_pos, player_transform.translation.xy(), 12.0) {
+            enemies_to_despawn.insert(enemy_entity);
+            spawn_enemy_death_particles(&mut commands, enemy_pos, attributes.color);
             if player_stats.health > 0 {
                 player_stats.health = (player_stats.health - attributes.damage).max(0);
                 player_hit_messages.write(PlayerHit);

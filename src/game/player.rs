@@ -5,11 +5,12 @@ use super::components::{Bomb, BombExplosion, Lifetime, Velocity};
 use super::constants::{
     BOMB_EXPLOSION_DURATION, BOMB_EXPLOSION_RADIUS, BOMB_FUSE, PROJECTILE_SPEED,
 };
+use super::enemy::Enemy;
 use super::powerup::PlayerUpgrades;
 use super::resources::{BombSound, ShootSound};
 use crate::MainState;
 use crate::audio::{SEVolume, spawn_se};
-use crate::game::components::{Enemy, LevelEntity, Projectile};
+use crate::game::components::{LevelEntity, Projectile};
 use crate::game::constants::{ARENA_HALF_SIZE, PLAYER_SIZE};
 use crate::game::ui::HealthText;
 
@@ -97,7 +98,7 @@ pub fn player_auto_fire(
             },
             Transform::from_translation(transform.translation + Vec3::new(0.0, 0.0, 1.0))
                 .with_rotation(Quat::from_rotation_z(dir.y.atan2(dir.x))),
-            Projectile,
+            Projectile { damage: 1 },
             Velocity(dir * PROJECTILE_SPEED),
             Lifetime {
                 timer: Timer::from_seconds(1.2, TimerMode::Once),

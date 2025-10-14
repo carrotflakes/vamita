@@ -2,7 +2,8 @@ use bevy::prelude::*;
 
 use crate::game::player::Player;
 
-use super::components::{Enemy, EnemyAttributes, Lifetime, Projectile, Velocity};
+use super::components::{Lifetime, Projectile, Velocity};
+use super::enemy::{Enemy, EnemyAttributes};
 
 pub fn update_velocity(time: Res<Time>, mut query: Query<(&mut Transform, &Velocity)>) {
     let delta = time.delta_secs();

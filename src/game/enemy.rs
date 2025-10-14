@@ -2,15 +2,28 @@ use bevy::prelude::*;
 use rand::Rng;
 use rand::prelude::*;
 
-use crate::game::components::LevelEntity;
 use crate::MainState;
 use crate::game::combat::EnemySpawnTimer;
-use crate::game::components::Enemy;
+use crate::game::components::LevelEntity;
 use crate::game::components::Velocity;
 use crate::game::constants::ARENA_HALF_SIZE;
 use crate::game::player::Player;
 
-use super::components::EnemyAttributes;
+#[derive(Component)]
+pub struct Enemy {
+    pub health: i32,
+}
+
+#[derive(Component, Copy, Clone)]
+pub struct EnemyAttributes {
+    pub health: i32,
+    pub size: Vec2,
+    pub speed: f32,
+    pub damage: i32,
+    pub score_value: u32,
+    pub xp_value: u32,
+    pub color: Color,
+}
 
 #[derive(Copy, Clone)]
 pub struct EnemyPrototype {
@@ -29,6 +42,7 @@ impl EnemyCatalog {
         let prototypes = vec![
             EnemyPrototype {
                 attributes: EnemyAttributes {
+                    health: 5,
                     size: Vec2::new(24.0, 24.0),
                     speed: 120.0,
                     damage: 1,
@@ -40,6 +54,7 @@ impl EnemyCatalog {
             },
             EnemyPrototype {
                 attributes: EnemyAttributes {
+                    health: 3,
                     size: Vec2::new(18.0, 18.0),
                     speed: 210.0,
                     damage: 1,
@@ -51,6 +66,7 @@ impl EnemyCatalog {
             },
             EnemyPrototype {
                 attributes: EnemyAttributes {
+                    health: 10,
                     size: Vec2::new(36.0, 36.0),
                     speed: 80.0,
                     damage: 2,
@@ -122,7 +138,9 @@ pub fn spawn_enemies(
                 ..default()
             },
             Transform::from_translation(Vec3::new(x, y, 0.0)),
-            Enemy,
+            Enemy {
+                health: attributes.health,
+            },
             attributes,
             Velocity(dir * attributes.speed),
         ));
