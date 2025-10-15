@@ -13,7 +13,7 @@ mod ui;
 
 use bevy::prelude::*;
 use combat::handle_collisions;
-use constants::{ENEMY_SPAWN_INTERVAL, PLAYER_MAX_HEALTH};
+use constants::ENEMY_SPAWN_INTERVAL;
 use events::{EnemyKilled, PlayerHit};
 use experience::experience_orb_behavior;
 use movement::{decay_lifetimes, enemy_seek_player, update_projectiles, update_velocity};
@@ -29,7 +29,7 @@ use crate::{
         combat::EnemySpawnTimer,
         components::LevelEntity,
         enemy::EnemyCatalog,
-        player::{BombTimer, PlayerStats, ShootTimer, spawn_player},
+    player::{BombTimer, PlayerStats, ShootTimer, spawn_player},
         ui::Score,
     },
 };
@@ -54,7 +54,7 @@ pub fn plugin(app: &mut App) {
                 pause::pause_input,
                 player_input,
                 ui::update_score_text,
-                player::update_health_text,
+                player::update_health_bar,
             )
                 .chain()
                 .run_if(in_state(MainState::Game).and(in_state(GameState::Playing))),
@@ -131,13 +131,12 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, difficulty: Res
         PlaybackSettings::LOOP,
     ));
 
-    reset_game(&mut commands, None, &asset_server, *difficulty);
+    reset_game(&mut commands, None, *difficulty);
 }
 
 pub fn reset_game(
     commands: &mut Commands,
     level_entity_query: Option<&Query<Entity, With<LevelEntity>>>,
-    asset_server: &Res<AssetServer>,
     difficulty: Difficulty,
 ) {
     commands.insert_resource(EnemySpawnTimer(Timer::from_seconds(
@@ -157,10 +156,7 @@ pub fn reset_game(
         TimerMode::Repeating,
     )));
     commands.insert_resource(PowerUpProgress::default());
-    commands.insert_resource(PlayerStats {
-        health: difficulty.player_max_health(PLAYER_MAX_HEALTH),
-        experience: 0,
-    });
+    commands.insert_resource(PlayerStats { experience: 0 });
     commands.insert_resource(Score::default());
 
     if let Some(level_entity_query) = level_entity_query {
@@ -169,8 +165,7 @@ pub fn reset_game(
         }
     }
 
-    let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-    spawn_player(commands, &font);
+    spawn_player(commands, &difficulty);
 
     commands.set_state(GameState::Playing);
 }

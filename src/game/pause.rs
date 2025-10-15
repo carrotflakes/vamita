@@ -35,7 +35,6 @@ pub fn pause_menu_actions(
     mut overlay: Query<&mut Visibility, With<PauseOverlay>>,
     mut commands: Commands,
     level_entity_query: Query<Entity, With<LevelEntity>>,
-    asset_server: Res<AssetServer>,
     difficulty: Res<Difficulty>,
     mut main_state: ResMut<NextState<MainState>>,
     mut game_state: ResMut<NextState<GameState>>,
@@ -52,7 +51,6 @@ pub fn pause_menu_actions(
         reset_game(
             &mut commands,
             Some(&level_entity_query),
-            &asset_server,
             *difficulty,
         );
         game_state.set(GameState::Playing);

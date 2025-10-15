@@ -4,15 +4,14 @@ use rand::prelude::*;
 
 use crate::MainState;
 use crate::game::combat::EnemySpawnTimer;
+use crate::game::components::Health;
 use crate::game::components::LevelEntity;
 use crate::game::components::Velocity;
 use crate::game::constants::ARENA_HALF_SIZE;
 use crate::game::player::Player;
 
 #[derive(Component)]
-pub struct Enemy {
-    pub health: i32,
-}
+pub struct Enemy;
 
 pub const ENEMY_HIT_FLASH_DURATION: f32 = 0.08;
 pub const ENEMY_HIT_FLASH_COLOR: Color = Color::WHITE;
@@ -146,10 +145,9 @@ pub fn spawn_enemies(
                 ..default()
             },
             Transform::from_translation(Vec3::new(x, y, 0.0)),
-            Enemy {
-                health: attributes.health,
-            },
+            Enemy,
             attributes,
+            Health::new(attributes.health),
             Velocity(dir * attributes.speed),
         ));
     }

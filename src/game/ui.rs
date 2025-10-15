@@ -10,7 +10,12 @@ pub struct Score(pub u32);
 pub struct ScoreText;
 
 #[derive(Component)]
-pub struct HealthText;
+pub struct HealthBarRoot;
+
+#[derive(Component)]
+pub struct HealthBarFill {
+    pub full_size: Vec2,
+}
 
 #[derive(Component)]
 pub struct PauseOverlay;

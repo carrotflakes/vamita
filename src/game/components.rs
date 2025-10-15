@@ -5,6 +5,24 @@ use bevy::prelude::*;
 pub struct LevelEntity;
 
 #[derive(Component)]
+pub struct Health {
+    pub current: i32,
+    pub max: i32,
+}
+
+impl Health {
+    pub fn new(max: i32) -> Self {
+        Self { current: max, max }
+    }
+}
+
+impl Default for Health {
+    fn default() -> Self {
+        Self { current: 1, max: 1 }
+    }
+}
+
+#[derive(Component)]
 pub struct Projectile {
     pub damage: i32,
 }

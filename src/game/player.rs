@@ -6,11 +6,11 @@ use super::constants::{BOMB_EXPLOSION_DURATION, BOMB_FUSE};
 use super::enemy::Enemy;
 use super::powerup::PlayerUpgrades;
 use super::resources::{BombSound, ShootSound};
-use crate::MainState;
 use crate::audio::{SEVolume, spawn_se};
-use crate::game::components::{LevelEntity, Projectile};
-use crate::game::constants::{ARENA_HALF_SIZE, PLAYER_SIZE};
-use crate::game::ui::HealthText;
+use crate::game::components::{Health, LevelEntity, Projectile};
+use crate::game::constants::{ARENA_HALF_SIZE, PLAYER_MAX_HEALTH, PLAYER_SIZE};
+use crate::game::ui::{HealthBarFill, HealthBarRoot};
+use crate::{Difficulty, MainState};
 
 use rand::Rng;
 use std::f32::consts::TAU;
@@ -20,7 +20,6 @@ pub struct Player;
 
 #[derive(Resource)]
 pub struct PlayerStats {
-    pub health: i32,
     pub experience: u32,
 }
 
@@ -188,33 +187,51 @@ pub fn constrain_to_arena(mut query: Query<&mut Transform, With<Player>>) {
     }
 }
 
-pub fn spawn_player(commands: &mut Commands, handle_font: &Handle<Font>) {
+pub fn spawn_player(commands: &mut Commands, difficulty: &Difficulty) {
+    let health_bar_size = Vec2::new(64.0, 8.0);
+
     commands.spawn((
         DespawnOnExit(MainState::Game),
         LevelEntity,
         Sprite::from_color(Color::srgb(0.2, 0.8, 1.0), PLAYER_SIZE),
         Transform::default(),
         Player,
+        Health::new(difficulty.player_max_health(PLAYER_MAX_HEALTH)),
         Velocity(Vec2::ZERO),
         children!((
-            Text2d("HP: ".to_string()),
-            TextFont {
-                font: handle_font.clone(),
-                font_size: 14.0,
-                ..default()
-            },
-            TextColor(Color::WHITE),
             Transform::from_translation(Vec3::new(0.0, 28.0, 1.0)),
-            HealthText,
-            children!(TextSpan::default())
+            GlobalTransform::default(),
+            HealthBarRoot,
+            children![
+                (
+                    Sprite::from_color(Color::srgba(0.0, 0.0, 0.0, 0.6), health_bar_size),
+                    Transform::default(),
+                ),
+                (
+                    Sprite::from_color(Color::srgba(0.1, 1.0, 0.3, 0.95), health_bar_size),
+                    Transform::from_translation(Vec3::new(0.0, 0.0, 0.1)),
+                    HealthBarFill {
+                        full_size: health_bar_size,
+                    },
+                )
+            ]
         )),
     ));
 }
 
-pub fn update_health_text(
-    player_stats: Res<PlayerStats>,
-    health_root: Single<Entity, (With<HealthText>, With<Text2d>)>,
-    mut writer: TextUiWriter,
+pub fn update_health_bar(
+    player: Single<&Health, With<Player>>,
+    mut fill: Query<(&mut Sprite, &mut Transform, &HealthBarFill)>,
 ) {
-    *writer.text(*health_root, 1) = player_stats.health.to_string();
+    let Some((mut sprite, mut transform, data)) = fill.iter_mut().next() else {
+        return;
+    };
+
+    let max_health = player.max.max(1) as f32;
+    let current_health = player.current.max(0) as f32;
+    let ratio = (current_health / max_health).clamp(0.0, 1.0);
+    let width = data.full_size.x * ratio;
+
+    sprite.custom_size = Some(Vec2::new(width, data.full_size.y));
+    transform.translation.x = -data.full_size.x / 2.0 + width / 2.0;
 }
