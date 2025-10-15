@@ -36,7 +36,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         },
         TextColor(Color::WHITE),
-        Transform::from_translation(Vec3::new(-200.0, 200.0, 1.0)),
+        Transform::from_translation(Vec3::new(-300.0, 250.0, 1.0)),
         ScoreText,
         children![(
             TextSpan::default(),
