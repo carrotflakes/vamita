@@ -4,11 +4,10 @@ use std::f32::consts::TAU;
 use bevy::prelude::*;
 use rand::Rng;
 
-use super::components::{BombExplosion, ExperienceOrb, Lifetime, Particle, Projectile, Velocity};
+use super::components::{BombExplosion, Lifetime, Particle, Projectile, Velocity};
 use super::constants::{
     ENEMY_DEATH_PARTICLE_LIFETIME, ENEMY_DEATH_PARTICLE_SIZE, ENEMY_DEATH_PARTICLE_SPEED,
-    ENEMY_DEATH_PARTICLES, EXPERIENCE_ORB_INITIAL_SPEED_MAX, EXPERIENCE_ORB_INITIAL_SPEED_MIN,
-    EXPERIENCE_ORB_SIZE,
+    ENEMY_DEATH_PARTICLES,
 };
 use super::enemy::{
     ENEMY_HIT_FLASH_COLOR, ENEMY_HIT_FLASH_DURATION, Enemy, EnemyAttributes, EnemyHitFlash,
@@ -18,6 +17,7 @@ use super::resources::{DefeatSound, HitSelfSound, HitSound};
 use crate::MainState;
 use crate::audio::{SEVolume, spawn_se};
 use crate::game::components::{Health, LevelEntity};
+use crate::game::experience::{OrbMesh, spawn_experience_orb};
 use crate::game::player::Player;
 use crate::game::ui::Score;
 
@@ -33,6 +33,7 @@ pub fn handle_collisions(
     hit_self_sound: Res<HitSelfSound>,
     se_volume: Res<SEVolume>,
     defeat_sound: Res<DefeatSound>,
+    orb_mesh: Res<OrbMesh>,
     mut player: Single<(Entity, &mut Health, &Transform), (With<Player>, Without<Enemy>)>,
     mut enemies: Query<
         (
@@ -95,7 +96,7 @@ pub fn handle_collisions(
                 enemy_killed_messages.write(EnemyKilled);
                 spawn_se(&mut commands, &*se_volume, &hit_sound.0);
                 spawn_enemy_death_particles(&mut commands, enemy_pos, attributes.color);
-                spawn_experience_orb(&mut commands, enemy_pos, attributes.xp_value);
+                spawn_experience_orb(&mut commands, &orb_mesh, enemy_pos, attributes.xp_value);
             } else {
                 sprite.color = ENEMY_HIT_FLASH_COLOR;
                 commands.entity(enemy_entity).insert(EnemyHitFlash {
@@ -158,29 +159,6 @@ fn spawn_enemy_death_particles(commands: &mut Commands, position: Vec2, color: C
             })
             .collect::<Vec<_>>(),
     );
-}
-
-fn spawn_experience_orb(commands: &mut Commands, position: Vec2, value: u32) {
-    let mut rng = rand::rng();
-    let angle = rng.random_range(0.0f32..TAU);
-    let speed =
-        rng.random_range(EXPERIENCE_ORB_INITIAL_SPEED_MIN..EXPERIENCE_ORB_INITIAL_SPEED_MAX);
-    let velocity = Vec2::new(angle.cos(), angle.sin()) * speed;
-    commands.spawn((
-        DespawnOnExit(MainState::Game),
-        LevelEntity,
-        Sprite {
-            color: Color::srgba(0.3, 0.9, 0.5, 0.95),
-            custom_size: Some(EXPERIENCE_ORB_SIZE),
-            ..default()
-        },
-        Transform::from_translation(Vec3::new(position.x, position.y, 0.8)),
-        ExperienceOrb {
-            value,
-            magnetized: false,
-        },
-        Velocity(velocity),
-    ));
 }
 
 fn collide(a_pos: Vec2, b_pos: Vec2, dist: f32) -> bool {

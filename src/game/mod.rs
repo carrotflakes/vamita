@@ -29,7 +29,7 @@ use crate::{
         combat::EnemySpawnTimer,
         components::LevelEntity,
         enemy::EnemyCatalog,
-    player::{BombTimer, PlayerStats, ShootTimer, spawn_player},
+        player::{BombTimer, PlayerStats, ShootTimer, spawn_player},
         ui::Score,
     },
 };
@@ -44,7 +44,10 @@ pub enum GameState {
 
 pub fn plugin(app: &mut App) {
     app.init_state::<GameState>()
-        .add_systems(OnEnter(MainState::Game), (setup, ui::setup))
+        .add_systems(
+            OnEnter(MainState::Game),
+            (setup, ui::setup, experience::setup),
+        )
         .insert_resource(EnemyCatalog::new())
         .add_message::<PlayerHit>()
         .add_message::<EnemyKilled>()
