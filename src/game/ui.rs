@@ -47,34 +47,6 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             TextColor(Color::WHITE),
         )],
     ));
-
-    const MARGIN: Val = Val::Px(16.0);
-
-    commands.spawn((
-        DespawnOnExit(MainState::Game),
-        Node {
-            width: percent(100),
-            height: percent(100),
-            flex_direction: FlexDirection::Column,
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            padding: UiRect::all(MARGIN),
-            row_gap: MARGIN,
-            ..Default::default()
-        },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.75)),
-        Visibility::Hidden,
-        PauseOverlay,
-        children!((
-            Text::new("Paused\nEnter: Resume\nN: New Game\nQ: Back to Menu".to_string()),
-            TextFont {
-                font: font_handle.clone(),
-                font_size: 48.0,
-                ..default()
-            },
-            TextColor(Color::WHITE),
-        )),
-    ));
 }
 
 pub fn update_score_text(

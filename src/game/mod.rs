@@ -17,7 +17,7 @@ use constants::ENEMY_SPAWN_INTERVAL;
 use events::{EnemyKilled, PlayerHit};
 use experience::experience_orb_behavior;
 use movement::{decay_lifetimes, enemy_seek_player, update_projectiles, update_velocity};
-use pause::pause_menu_actions;
+use pause::{pause_button_visuals, pause_menu_actions};
 use player::player_input;
 use powerup::{PlayerUpgrades, PowerUpProgress, handle_powerup_selection, powerup_button_visuals};
 use resources::{BombSound, DefeatSound, ExperienceOrbSound, HitSelfSound, HitSound, ShootSound};
@@ -64,7 +64,7 @@ pub fn plugin(app: &mut App) {
         )
         .add_systems(
             Update,
-            (pause::pause_input, pause_menu_actions)
+            (pause::pause_input, pause_button_visuals, pause_menu_actions)
                 .chain()
                 .run_if(in_state(MainState::Game).and(in_state(GameState::Paused))),
         )
