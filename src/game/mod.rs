@@ -73,6 +73,10 @@ pub fn plugin(app: &mut App) {
             (powerup_button_visuals, handle_powerup_selection)
                 .run_if(in_state(MainState::Game).and(in_state(GameState::SelectingPowerUp))),
         )
+        // .add_systems(
+        //     Update,
+        //     center_camera_on_player.run_if(in_state(MainState::Game)),
+        // )
         .add_systems(
             FixedUpdate,
             (

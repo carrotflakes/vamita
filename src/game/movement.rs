@@ -96,3 +96,13 @@ pub fn decay_lifetimes(
         }
     }
 }
+
+#[allow(dead_code)]
+pub fn center_camera_on_player(
+    player_transform: Single<&Transform, With<Player>>,
+    mut camera_transform: Single<&mut Transform, (With<Camera2d>, Without<Player>)>,
+) {
+    let player_translation = player_transform.translation;
+    camera_transform.translation.x = player_translation.x;
+    camera_transform.translation.y = player_translation.y;
+}
